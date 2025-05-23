@@ -1,3 +1,5 @@
+import { cacheService } from './cacheService.js'
+
 // Configurações da API
 const TINY_TOKEN = '6126c965d5c8d23c0da7b7bc33372c40463b9368fce27eeb36c6e0b3a5e13929'
 
@@ -5,11 +7,45 @@ const TINY_TOKEN = '6126c965d5c8d23c0da7b7bc33372c40463b9368fce27eeb36c6e0b3a5e1
 const isDevelopment = import.meta.env.DEV
 const API_BASE = isDevelopment ? '/api/tiny/api2' : 'https://api.tiny.com.br/api2'
 
-// Função para fazer requisições
-const makeRequest = async (endpoint, data, method = 'POST') => {
-  try {
-    const url = `${API_BASE}${endpoint}`
+// Controle de rate limiting
+const API_RATE_LIMIT = {
+  maxRequestsPerMinute: 30,
+  requests: [],
 
+  canMakeRequest() {
+    const now = Date.now()
+    const oneMinuteAgo = now - 60000
+
+    // Remove requisições antigas
+    this.requests = this.requests.filter(time => time > oneMinuteAgo)
+
+    if (this.requests.length >= this.maxRequestsPerMinute) {
+      console.warn('⚠️ Rate limit atingido, aguarde antes de fazer mais requisições')
+      return false
+    }
+
+    this.requests.push(now)
+    return true
+  },
+
+  getWaitTime() {
+    if (this.requests.length === 0) return 0
+    const oldestRequest = Math.min(...this.requests)
+    const waitTime = 60000 - (Date.now() - oldestRequest)
+    return Math.max(0, waitTime)
+  }
+}
+
+// Função para fazer requisições com cache
+const makeRequest = async (endpoint, data, method = 'POST', useCache = true) => {
+  try {
+    // Verificar rate limiting
+    if (!API_RATE_LIMIT.canMakeRequest()) {
+      const waitTime = API_RATE_LIMIT.getWaitTime()
+      throw new Error(`Rate limit atingido. Aguarde ${Math.ceil(waitTime / 1000)} segundos`)
+    }
+
+    const url = `${API_BASE}${endpoint}`
     console.log(`🔄 Fazendo requisição para: ${url}`)
 
     const response = await fetch(url, {
@@ -41,9 +77,16 @@ const makeRequest = async (endpoint, data, method = 'POST') => {
   }
 }
 
-// Função para testar conexão com a API do Tiny
+// Função para testar conexão com a API do Tiny (com cache)
 export const testTinyConnection = async () => {
   try {
+    // Verificar cache primeiro
+    const cachedStatus = cacheService.getApiStatus()
+    if (cachedStatus) {
+      console.log('✅ Status da API encontrado no cache:', cachedStatus.connected)
+      return cachedStatus.connected
+    }
+
     console.log('🔍 Testando conexão com API do Tiny...')
 
     const data = {
@@ -51,45 +94,57 @@ export const testTinyConnection = async () => {
       formato: 'json'
     }
 
-    const response = await makeRequest('/info.php', data)
+    const response = await makeRequest('/info.php', data, 'POST', false)
 
-    console.log('📋 Resposta completa da API info:', response)
+    const isConnected = response && response.retorno && response.retorno.status === 'OK'
 
-    if (response && response.retorno) {
-      if (response.retorno.status === 'OK') {
-        console.log('✅ Conexão com API do Tiny estabelecida!')
-        console.log('📊 Dados da conta:', response.retorno)
-        return true
-      } else {
-        console.log('⚠️ API respondeu mas com status:', response.retorno.status)
-        if (response.retorno.erros && response.retorno.erros.length > 0) {
-          console.log('❌ Erros da API:', response.retorno.erros)
-        }
-        if (response.retorno.codigo_erro) {
-          console.log('❌ Código de erro:', response.retorno.codigo_erro)
-        }
-        return false
-      }
+    // Salvar no cache
+    cacheService.saveApiStatus({
+      connected: isConnected,
+      timestamp: new Date().toISOString(),
+      accountInfo: isConnected ? response.retorno : null
+    })
+
+    if (isConnected) {
+      console.log('✅ Conexão com API do Tiny estabelecida!')
+      console.log('📊 Dados da conta:', response.retorno)
     } else {
-      console.log('⚠️ Resposta da API não tem formato esperado:', response)
-      return false
+      console.log('⚠️ API respondeu mas com status:', response.retorno?.status)
     }
+
+    return isConnected
 
   } catch (error) {
     console.error('❌ Erro no teste de conexão:', error.message)
 
-    // Se estamos em desenvolvimento e o erro for de rede, pode ser problema do proxy
-    if (isDevelopment && error.message.includes('fetch')) {
-      console.log('💡 Dica: Verifique se o proxy está configurado corretamente no vite.config.js')
-    }
+    // Em caso de erro, salvar status negativo no cache por um tempo menor
+    cacheService.saveApiStatus({
+      connected: false,
+      timestamp: new Date().toISOString(),
+      error: error.message
+    })
 
     return false
   }
 }
 
-// Função para buscar produtos do Tiny com detalhes completos
-export const fetchProductsFromTiny = async () => {
+// Função para buscar produtos do Tiny com cache inteligente
+export const fetchProductsFromTiny = async (forceRefresh = false) => {
   try {
+    // Verificar cache primeiro (a menos que seja forçado o refresh)
+    if (!forceRefresh) {
+      const cachedProducts = cacheService.getProducts()
+      if (cachedProducts) {
+        console.log(`🎯 ${cachedProducts.length} produtos carregados do cache!`)
+        return {
+          success: true,
+          products: cachedProducts,
+          categories: [...new Set(cachedProducts.map(p => p.categoria).filter(Boolean))],
+          fromCache: true
+        }
+      }
+    }
+
     console.log('📦 Buscando produtos da API do Tiny...')
 
     const data = {
@@ -116,59 +171,60 @@ export const fetchProductsFromTiny = async () => {
         }))
 
         console.log(`✅ ${basicProducts.length} produtos encontrados`)
-        console.log('🔄 Carregando detalhes completos (incluindo imagens)...')
+        console.log('🔄 Carregando detalhes completos (limitado para economizar requisições)...')
 
-        // Carregar detalhes de todos os produtos (limitando para não sobrecarregar)
+        // Carregar detalhes de um número limitado de produtos para economizar requisições
+        const maxProductsWithDetails = 20 // Reduzido para economizar API calls
+        const productsToDetail = basicProducts.slice(0, maxProductsWithDetails)
+
         const productsWithDetails = await Promise.allSettled(
-          basicProducts.slice(0, 50).map(async (product) => { // Limitar a 50 produtos para não sobrecarregar
+          productsToDetail.map(async (product) => {
             try {
+              // Verificar se já temos os detalhes no cache
+              const cachedDetails = cacheService.getProductDetails(product.id)
+              if (cachedDetails) {
+                console.log(`📋 Detalhes do produto ${product.id} encontrados no cache`)
+                return cachedDetails
+              }
+
+              // Se não estiver no cache, buscar da API
               const detailedProduct = await fetchProductById(product.id)
               if (detailedProduct.success) {
-                return {
-                  ...detailedProduct.product,
-                  detalhes_carregados: true
-                }
+                // Salvar detalhes no cache
+                cacheService.saveProductDetails(product.id, detailedProduct.product)
+                return detailedProduct.product
               } else {
-                // Se falhar, manter dados básicos
-                return {
-                  ...product,
-                  descricao: 'Sem descrição disponível',
-                  peso: '0',
-                  imagens: [],
-                  categoria: 'Produtos',
-                  marca: '',
-                  detalhes_carregados: false
-                }
+                // Se falhar, usar dados básicos
+                return createBasicProduct(product)
               }
             } catch (error) {
               console.warn(`⚠️ Erro ao carregar detalhes do produto ${product.id}:`, error.message)
-              return {
-                ...product,
-                descricao: 'Sem descrição disponível',
-                peso: '0',
-                imagens: [],
-                categoria: 'Produtos',
-                marca: '',
-                detalhes_carregados: false
-              }
+              return createBasicProduct(product)
             }
           })
         )
 
-        // Processar resultados
-        const finalProducts = productsWithDetails.map(result => {
+        // Processar produtos restantes com dados básicos
+        const remainingProducts = basicProducts.slice(maxProductsWithDetails).map(createBasicProduct)
+
+        // Combinar produtos com detalhes e produtos básicos
+        const detailedProducts = productsWithDetails.map(result => {
           if (result.status === 'fulfilled') {
             return result.value
           } else {
             console.warn('⚠️ Produto não carregado:', result.reason)
             return null
           }
-        }).filter(Boolean) // Remove nulls
+        }).filter(Boolean)
 
-        // Extrair categorias únicas
+        const finalProducts = [...detailedProducts, ...remainingProducts]
+
+        // Salvar no cache
+        cacheService.saveProducts(finalProducts)
+
         const categories = [...new Set(finalProducts.map(p => p.categoria).filter(Boolean))]
 
-        console.log(`🎉 ${finalProducts.length} produtos carregados com detalhes completos!`)
+        console.log(`🎉 ${finalProducts.length} produtos processados (${detailedProducts.length} com detalhes completos)!`)
         console.log(`📸 Produtos com imagens: ${finalProducts.filter(p => p.imagens.length > 0).length}`)
 
         return {
@@ -178,7 +234,8 @@ export const fetchProductsFromTiny = async () => {
           pagination: {
             current_page: parseInt(response.retorno.pagina),
             total_pages: parseInt(response.retorno.numero_paginas)
-          }
+          },
+          fromCache: false
         }
       } else {
         console.log('⚠️ API não retornou produtos:', response.retorno.erro || 'Erro desconhecido')
@@ -195,6 +252,21 @@ export const fetchProductsFromTiny = async () => {
 
   } catch (error) {
     console.error('❌ Erro ao buscar produtos:', error.message)
+
+    // Em caso de erro, tentar retornar do cache mesmo que tenha expirado
+    const cachedProducts = cacheService.get('products_cache_expired') || cacheService.getProducts()
+    if (cachedProducts) {
+      console.log('🔄 Retornando produtos do cache devido a erro na API')
+      return {
+        success: true,
+        products: cachedProducts,
+        categories: [...new Set(cachedProducts.map(p => p.categoria).filter(Boolean))],
+        fromCache: true,
+        hasError: true,
+        error: error.message
+      }
+    }
+
     return {
       success: false,
       products: [],
@@ -204,14 +276,37 @@ export const fetchProductsFromTiny = async () => {
   }
 }
 
-// Função para carregar detalhes completos do produto (incluindo imagens)
+// Função auxiliar para criar produto básico
+const createBasicProduct = (product) => {
+  return {
+    ...product,
+    descricao: 'Informações detalhadas disponíveis em breve',
+    peso: '0',
+    imagens: [],
+    categoria: 'Produtos',
+    marca: '',
+    detalhes_carregados: false
+  }
+}
+
+// Função para carregar detalhes completos do produto (com cache)
 export const fetchProductWithDetails = async (productId) => {
   try {
+    // Verificar cache primeiro
+    const cachedDetails = cacheService.getProductDetails(productId)
+    if (cachedDetails) {
+      console.log(`📋 Detalhes do produto ${productId} encontrados no cache`)
+      return cachedDetails
+    }
+
     console.log(`🔍 Carregando detalhes do produto ID: ${productId}`)
 
     const result = await fetchProductById(productId)
 
     if (result.success) {
+      // Salvar no cache
+      cacheService.saveProductDetails(productId, result.product)
+
       console.log(`✅ Detalhes carregados para produto: ${result.product.nome}`)
       console.log(`📸 Encontradas ${result.product.imagens.length} imagens`)
       return result.product
@@ -265,29 +360,32 @@ export const fetchProductById = async (productId) => {
         imagens = [...imagens, ...imagensExternas];
       }
 
+      const productData = {
+        id: produto.id.toString(),
+        nome: produto.nome || 'Produto sem nome',
+        preco: parseFloat(produto.preco) || 0,
+        preco_promocional: parseFloat(produto.preco_promocional) || null,
+        descricao: produto.descricao_complementar || produto.obs || 'Sem descrição',
+        codigo: produto.codigo || '',
+        unidade: produto.unidade || 'UN',
+        peso: produto.peso_liquido || produto.peso_bruto || '0',
+        imagens: imagens,
+        categoria: produto.categoria || 'Geral',
+        marca: produto.marca || '',
+        situacao: produto.situacao || 'A',
+        gtin: produto.gtin || '',
+        ncm: produto.ncm || '',
+        garantia: produto.garantia || '',
+        estoque_minimo: produto.estoque_minimo || 0,
+        estoque_maximo: produto.estoque_maximo || 0,
+        localizacao: produto.localizacao || '',
+        data_criacao: produto.data_criacao || '',
+        detalhes_carregados: true
+      }
+
       return {
         success: true,
-        product: {
-          id: produto.id.toString(),
-          nome: produto.nome || 'Produto sem nome',
-          preco: parseFloat(produto.preco) || 0,
-          preco_promocional: parseFloat(produto.preco_promocional) || null,
-          descricao: produto.descricao_complementar || produto.obs || 'Sem descrição',
-          codigo: produto.codigo || '',
-          unidade: produto.unidade || 'UN',
-          peso: produto.peso_liquido || produto.peso_bruto || '0',
-          imagens: imagens,
-          categoria: produto.categoria || 'Geral',
-          marca: produto.marca || '',
-          situacao: produto.situacao || 'A',
-          gtin: produto.gtin || '',
-          ncm: produto.ncm || '',
-          garantia: produto.garantia || '',
-          estoque_minimo: produto.estoque_minimo || 0,
-          estoque_maximo: produto.estoque_maximo || 0,
-          localizacao: produto.localizacao || '',
-          data_criacao: produto.data_criacao || ''
-        }
+        product: productData
       }
     } else {
       return {
@@ -305,48 +403,23 @@ export const fetchProductById = async (productId) => {
   }
 }
 
-// Função para buscar todos os produtos usando produto.obter.php
-export const fetchAllProductsIndividually = async (productIds) => {
-  try {
-    console.log('📦 Buscando produtos individualmente...')
+// Função para obter informações do cache
+export const getCacheInfo = () => {
+  return cacheService.getCacheInfo()
+}
 
-    const products = []
-    const errors = []
+// Função para limpar cache
+export const clearCache = () => {
+  cacheService.clear()
+  console.log('🧹 Cache limpo!')
+}
 
-    for (const id of productIds) {
-      try {
-        const result = await fetchProductById(id)
-        if (result.success) {
-          products.push(result.product)
-        } else {
-          errors.push({ id, error: result.error })
-        }
-      } catch (error) {
-        errors.push({ id, error: error.message })
-      }
-    }
-
-    console.log(`✅ ${products.length} produtos carregados individualmente`)
-    if (errors.length > 0) {
-      console.log(`⚠️ ${errors.length} produtos com erro:`, errors)
-    }
-
-    return {
-      success: true,
-      products,
-      errors,
-      categories: [...new Set(products.map(p => p.categoria))]
-    }
-
-  } catch (error) {
-    console.error('❌ Erro ao buscar produtos individualmente:', error.message)
-    return {
-      success: false,
-      products: [],
-      errors: [{ error: error.message }],
-      categories: []
-    }
-  }
+// Função para verificar se deve atualizar o cache
+export const shouldUpdateCache = () => {
+  const cacheInfo = getCacheInfo()
+  return !cacheInfo.hasProducts ||
+    (cacheInfo.lastUpdate &&
+      new Date() - new Date(cacheInfo.lastUpdate) > 30 * 60 * 1000) // 30 minutos
 }
 
 // Função para debugar a resposta da API (para desenvolvimento)
@@ -361,7 +434,7 @@ export const debugTinyApiResponse = async () => {
       pagina: 1
     }
 
-    const response = await makeRequest('/produtos.pesquisa.php', data)
+    const response = await makeRequest('/produtos.pesquisa.php', data, 'POST', false)
 
     console.log('📋 Resposta completa da API:', JSON.stringify(response, null, 2))
 
@@ -372,7 +445,6 @@ export const debugTinyApiResponse = async () => {
         nome: produto.nome,
         anexos: produto.anexos,
         imagens_externas: produto.imagens_externas,
-        // Mostrar todas as propriedades que começam com 'imag'
         imagensProps: Object.keys(produto).filter(key => key.toLowerCase().includes('imag'))
       })
     }
@@ -389,7 +461,6 @@ export const testApiDirectly = async () => {
   try {
     console.log('🔧 Teste direto da API...')
 
-    // Teste 1: Verificar se o proxy está funcionando
     const url = `${API_BASE}/info.php`
     console.log('🌐 URL completa:', url)
 
@@ -430,10 +501,18 @@ export const testApiDirectly = async () => {
 // Função utilitária para verificar status da API
 export const getApiStatus = async () => {
   const isConnected = await testTinyConnection()
+  const cacheInfo = getCacheInfo()
+
   return {
     connected: isConnected,
     environment: isDevelopment ? 'development' : 'production',
     apiBase: API_BASE,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    cache: cacheInfo,
+    rateLimit: {
+      requestsThisMinute: API_RATE_LIMIT.requests.length,
+      maxPerMinute: API_RATE_LIMIT.maxRequestsPerMinute,
+      canMakeRequest: API_RATE_LIMIT.canMakeRequest()
+    }
   }
 }
