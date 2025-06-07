@@ -25,7 +25,7 @@ class TokenManager {
       tokenType: tokenData.tokenType || 'Bearer',
       expiresAt: Date.now() + (tokenData.expiresIn * 1000),
       createdAt: Date.now(),
-      scope: tokenData.scope || ''
+      scope: tokenData.scope || 'openid'
     };
 
     try {
@@ -34,6 +34,7 @@ class TokenManager {
 
       console.log('✅ Tokens salvos em:', this.tokenFile);
       console.log('📅 Token expira em:', new Date(tokens.expiresAt).toISOString());
+      console.log('⏰ Duração do token:', Math.round(tokenData.expiresIn / 3600), 'horas');
 
     } catch (error) {
       console.error('❌ Erro ao salvar tokens:', error);
@@ -66,12 +67,14 @@ class TokenManager {
     }
 
     // Verificar se o token ainda é válido (com margem de 5 minutos)
+    // Conforme documentação: token expira em 4 horas
     const now = Date.now();
     const expiresAt = this.currentTokens.expiresAt;
     const marginMs = 5 * 60 * 1000; // 5 minutos
 
     if (now >= (expiresAt - marginMs)) {
       console.log('🔄 Token expirando em breve, renovando automaticamente...');
+      console.log('⏰ Tempo restante:', Math.round((expiresAt - now) / 1000 / 60), 'minutos');
       await this.refreshToken();
     }
 
@@ -85,7 +88,9 @@ class TokenManager {
 
     try {
       console.log('🔄 Renovando token de acesso...');
+      console.log('📡 Usando refresh token para renovação automática');
 
+      // URL EXATA conforme documentação oficial da Tiny
       const tokenUrl = `${process.env.TINY_AUTH_URL}/token`;
 
       const response = await axios.post(
@@ -109,7 +114,7 @@ class TokenManager {
 
       await this.saveTokens({
         accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || this.currentTokens.refreshToken,
+        refreshToken: tokenData.refresh_token || this.currentTokens.refreshToken, // Manter refresh token se não vier novo
         expiresIn: tokenData.expires_in,
         tokenType: tokenData.token_type,
         scope: tokenData.scope
@@ -117,6 +122,7 @@ class TokenManager {
 
       console.log('✅ Token renovado com sucesso');
       console.log('📊 Novo token expira em:', new Date(this.currentTokens.expiresAt).toISOString());
+      console.log('⏰ Nova duração:', Math.round(tokenData.expires_in / 3600), 'horas');
 
       return this.currentTokens;
 
@@ -158,7 +164,7 @@ class TokenManager {
   }
 
   // Método para verificar se o token está próximo do vencimento
-  isTokenExpiring(minutesThreshold = 5) {
+  isTokenExpiring(minutesThreshold = 30) { // 30 minutos como padrão
     if (!this.currentTokens) {
       return true;
     }
@@ -170,20 +176,28 @@ class TokenManager {
     return (expiresAt - now) <= thresholdMs;
   }
 
-  // Método para obter informações do token
+  // Método para obter informações detalhadas do token
   getTokenInfo() {
     if (!this.currentTokens) {
       return null;
     }
+
+    const now = Date.now();
+    const timeToExpire = Math.max(0, this.currentTokens.expiresAt - now);
+    const hoursToExpire = Math.round(timeToExpire / (1000 * 60 * 60) * 100) / 100;
+    const minutesToExpire = Math.round(timeToExpire / (1000 * 60));
 
     return {
       tokenType: this.currentTokens.tokenType,
       expiresAt: this.currentTokens.expiresAt,
       createdAt: this.currentTokens.createdAt,
       scope: this.currentTokens.scope,
-      timeToExpire: Math.max(0, this.currentTokens.expiresAt - Date.now()),
+      timeToExpire: timeToExpire,
+      hoursToExpire: hoursToExpire,
+      minutesToExpire: minutesToExpire,
       isExpiring: this.isTokenExpiring(),
-      isValid: this.currentTokens.expiresAt > Date.now()
+      isValid: this.currentTokens.expiresAt > now,
+      hasRefreshToken: !!this.currentTokens.refreshToken
     };
   }
 
@@ -191,14 +205,30 @@ class TokenManager {
   async debugTokens() {
     const info = this.getTokenInfo();
 
-    console.log('🔍 Debug dos Tokens:', {
+    console.log('🔍 Debug dos Tokens (Oficial Tiny):', {
       hasTokens: !!this.currentTokens,
       tokenInfo: info,
       filePath: this.tokenFile,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      officialConfig: {
+        tokenDuration: '4 horas',
+        refreshTokenDuration: '1 dia',
+        scope: 'openid',
+        renewalThreshold: '30 minutos antes do vencimento'
+      }
     });
 
     return info;
+  }
+
+  // Método para verificar se precisa de autenticação
+  async needsAuthentication() {
+    try {
+      await this.getValidToken();
+      return false; // Tem token válido
+    } catch (error) {
+      return true; // Precisa autenticar
+    }
   }
 }
 
