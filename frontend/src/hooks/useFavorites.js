@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export const useFavorites = () => {
   const [favorites, setFavorites] = useState(() => {
     try {
       const saved = localStorage.getItem('favorites');
       return saved ? JSON.parse(saved) : [];
-    } catch {
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
       return [];
     }
   });
 
-  // Salvar no localStorage sempre que os favoritos mudarem
+  // Save favorites to localStorage whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem('favorites', JSON.stringify(favorites));
@@ -19,59 +20,53 @@ export const useFavorites = () => {
     }
   }, [favorites]);
 
-  // Adicionar ou remover favorito
-  const toggleFavorite = (productId) => {
+  // Add product to favorites
+  const addToFavorites = useCallback((productId) => {
     setFavorites(prev => {
       if (prev.includes(productId)) {
-        // Remove dos favoritos
-        return prev.filter(id => id !== productId);
-      } else {
-        // Adiciona aos favoritos
-        return [...prev, productId];
+        return prev; // Already in favorites
       }
+      return [...prev, productId];
     });
-  };
+  }, []);
 
-  // Verificar se produto é favorito
-  const isFavorite = (productId) => {
-    return favorites.includes(productId);
-  };
-
-  // Adicionar aos favoritos
-  const addToFavorites = (productId) => {
-    if (!favorites.includes(productId)) {
-      setFavorites(prev => [...prev, productId]);
-    }
-  };
-
-  // Remover dos favoritos
-  const removeFromFavorites = (productId) => {
+  // Remove product from favorites
+  const removeFromFavorites = useCallback((productId) => {
     setFavorites(prev => prev.filter(id => id !== productId));
-  };
+  }, []);
 
-  // Limpar todos os favoritos
-  const clearFavorites = () => {
+  // Toggle favorite status
+  const toggleFavorite = useCallback((productId) => {
+    setFavorites(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      }
+      return [...prev, productId];
+    });
+  }, []);
+
+  // Check if product is favorite
+  const isFavorite = useCallback((productId) => {
+    return favorites.includes(productId);
+  }, [favorites]);
+
+  // Clear all favorites
+  const clearFavorites = useCallback(() => {
     setFavorites([]);
-  };
+  }, []);
 
-  // Obter quantidade de favoritos
-  const getFavoritesCount = () => {
+  // Get favorites count
+  const getFavoritesCount = useCallback(() => {
     return favorites.length;
-  };
-
-  // Filtrar produtos favoritos de uma lista
-  const getFavoriteProducts = (products) => {
-    return products.filter(product => favorites.includes(product.id));
-  };
+  }, [favorites]);
 
   return {
     favorites,
-    toggleFavorite,
-    isFavorite,
     addToFavorites,
     removeFromFavorites,
+    toggleFavorite,
+    isFavorite,
     clearFavorites,
-    getFavoritesCount,
-    getFavoriteProducts
+    getFavoritesCount
   };
 };
