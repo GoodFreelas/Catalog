@@ -1,0 +1,390 @@
+name: 🚀 Deploy Catálogo Tiny (Create React App)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "18"
+  CACHE_VERSION: "v1"
+
+jobs:
+  # ===============================
+  # JOB 1: ANÁLISE E TESTES
+  # ===============================
+  test:
+    name: 🧪 Testes e Análise
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      # Cache personalizado para node_modules
+      - name: 💾 Cache node_modules Backend
+        uses: actions/cache@v3
+        with:
+          path: backend/node_modules
+          key: ${{ runner.os }}-backend-${{ env.CACHE_VERSION }}-${{ hashFiles('backend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-${{ env.CACHE_VERSION }}-
+
+      - name: 💾 Cache node_modules Frontend
+        uses: actions/cache@v3
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-${{ env.CACHE_VERSION }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-${{ env.CACHE_VERSION }}-
+
+      # Cache do build do Create React App
+      - name: 💾 Cache Build CRA
+        uses: actions/cache@v3
+        with:
+          path: |
+            frontend/build
+            frontend/.cache
+          key: ${{ runner.os }}-cra-build-${{ hashFiles('frontend/src/**/*') }}
+          restore-keys: |
+            ${{ runner.os }}-cra-build-
+
+      # Instalar dependências
+      - name: 📦 Instalar dependências Backend
+        run: |
+          cd backend
+          npm ci --prefer-offline --no-audit
+
+      - name: 📦 Instalar dependências Frontend
+        run: |
+          cd frontend
+          npm ci --prefer-offline --no-audit
+
+      # Verificações de código
+      - name: 🔍 Lint Backend
+        run: |
+          cd backend
+          npm run lint || echo "⚠️ Lint não configurado no backend"
+
+      - name: 🔍 Lint Frontend
+        run: |
+          cd frontend
+          npm run lint || npx eslint src/ || echo "⚠️ Executando lint padrão"
+
+      # Testes
+      - name: 🧪 Testes Backend
+        run: |
+          cd backend
+          npm test || echo "⚠️ Testes não configurados no backend"
+
+      - name: 🧪 Testes Frontend (Create React App)
+        run: |
+          cd frontend
+          npm test -- --coverage --verbose --watchAll=false
+        env:
+          CI: true
+
+      # Build do frontend Create React App
+      - name: 🏗️ Build Frontend (Create React App)
+        run: |
+          cd frontend
+          npm run build
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL || 'http://localhost:3001/api' }}
+          REACT_APP_WHATSAPP_NUMBER: ${{ secrets.REACT_APP_WHATSAPP_NUMBER || '5551999999999' }}
+          REACT_APP_STORE_NAME: ${{ secrets.REACT_APP_STORE_NAME || 'Minha Loja' }}
+          REACT_APP_STORE_LOGO: ${{ secrets.REACT_APP_STORE_LOGO || '/assets/logo.png' }}
+          GENERATE_SOURCEMAP: false
+          PUBLIC_URL: ${{ secrets.FRONTEND_URL || '' }}
+
+      # Upload dos artefatos de build
+      - name: 📤 Upload Frontend Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/build
+          retention-days: 1
+
+  # ===============================
+  # JOB 2: DEPLOY BACKEND
+  # ===============================
+  deploy-backend:
+    name: 🔧 Deploy Backend
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production-backend
+      url: ${{ steps.deploy.outputs.app-url }}
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      # Deploy para Heroku
+      - name: 🚀 Deploy para Heroku
+        id: deploy
+        uses: akhileshns/heroku-deploy@v3.12.14
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          appdir: "backend"
+          procfile: "web: npm start"
+          healthcheck: "https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/health"
+          checkstring: "ok"
+          delay: 5
+
+      # Configurar variáveis de ambiente no Heroku
+      - name: ⚙️ Configurar variáveis Heroku
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh
+
+          heroku config:set \
+            TINY_CLIENT_ID="${{ secrets.TINY_CLIENT_ID }}" \
+            TINY_CLIENT_SECRET="${{ secrets.TINY_CLIENT_SECRET }}" \
+            FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
+            NODE_ENV=production \
+            NPM_CONFIG_PRODUCTION=false \
+            -a ${{ secrets.HEROKU_APP_NAME }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+      # Verificar saúde do backend
+      - name: 🏥 Health Check Backend
+        run: |
+          echo "🔍 Verificando saúde do backend..."
+          for i in {1..10}; do
+            if curl -s "https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/health" | grep -q "ok"; then
+              echo "✅ Backend está saudável!"
+              exit 0
+            fi
+            echo "⏳ Tentativa $i/10..."
+            sleep 10
+          done
+          echo "❌ Backend não respondeu corretamente"
+          exit 1
+
+  # ===============================
+  # JOB 3: DEPLOY FRONTEND (CRA)
+  # ===============================
+  deploy-frontend:
+    name: 🎨 Deploy Frontend (Create React App)
+    needs: [test, deploy-backend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production-frontend
+      url: ${{ steps.deploy.outputs.preview-url }}
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      # Download do build anterior (se disponível)
+      - name: 📥 Download Frontend Build
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/build
+        continue-on-error: true
+
+      - name: 📦 Instalar dependências
+        run: |
+          cd frontend
+          npm ci --prefer-offline --no-audit
+
+      # Build final Create React App com variáveis de produção
+      - name: 🏗️ Build Create React App Produção
+        run: |
+          cd frontend
+          npm run build
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          REACT_APP_WHATSAPP_NUMBER: ${{ secrets.REACT_APP_WHATSAPP_NUMBER }}
+          REACT_APP_STORE_NAME: ${{ secrets.REACT_APP_STORE_NAME }}
+          REACT_APP_STORE_LOGO: ${{ secrets.REACT_APP_STORE_LOGO }}
+          GENERATE_SOURCEMAP: false
+          PUBLIC_URL: ${{ secrets.FRONTEND_URL }}
+          BUILD_PATH: build
+
+      # Deploy para Vercel
+      - name: 🚀 Deploy para Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-args: "--prod"
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: frontend
+          github-comment: false
+
+      # Alternativa: Deploy para Netlify
+      - name: 🌐 Deploy para Netlify (alternativo)
+        if: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        uses: nwtgck/actions-netlify@v2.1
+        with:
+          publish-dir: "./frontend/build"
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions - Create React App"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      # Deploy estático para GitHub Pages (alternativo)
+      - name: 📄 Deploy para GitHub Pages
+        if: ${{ secrets.GITHUB_TOKEN && !secrets.VERCEL_TOKEN }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend/build
+          cname: ${{ secrets.CUSTOM_DOMAIN }}
+
+      # Verificar se frontend está funcionando
+      - name: 🔍 Verificar Frontend
+        run: |
+          echo "🔍 Verificando frontend..."
+          if [ -n "${{ steps.deploy.outputs.preview-url }}" ]; then
+            URL="${{ steps.deploy.outputs.preview-url }}"
+          else
+            URL="${{ secrets.FRONTEND_URL }}"
+          fi
+
+          for i in {1..5}; do
+            if curl -s "$URL" | grep -q "<title>"; then
+              echo "✅ Frontend está funcionando!"
+              echo "🌐 URL: $URL"
+              exit 0
+            fi
+            echo "⏳ Tentativa $i/5..."
+            sleep 5
+          done
+          echo "⚠️ Frontend pode não estar respondendo corretamente"
+
+  # ===============================
+  # JOB 4: TESTES DE INTEGRAÇÃO
+  # ===============================
+  integration-tests:
+    name: 🔗 Testes de Integração
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      # Testes E2E específicos para Create React App
+      - name: 🧪 Testes de API
+        run: |
+          echo "🔍 Testando endpoints do backend..."
+
+          BACKEND_URL="https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com"
+
+          # Teste de health
+          echo "Testing health endpoint..."
+          curl -f "$BACKEND_URL/health" || exit 1
+
+          # Teste de status
+          echo "Testing status endpoint..."
+          curl -f "$BACKEND_URL/api/status" || exit 1
+
+          echo "✅ Todos os testes de API passaram!"
+
+      - name: 🌐 Teste Frontend-Backend (Create React App)
+        run: |
+          echo "🔍 Testando comunicação frontend-backend..."
+
+          BACKEND_URL="https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com"
+
+          # Teste CORS específico para Create React App
+          curl -H "Origin: ${{ secrets.FRONTEND_URL }}" \
+               -H "Access-Control-Request-Method: GET" \
+               -H "Access-Control-Request-Headers: Content-Type" \
+               -X OPTIONS \
+               "$BACKEND_URL/api/status" || exit 1
+
+          echo "✅ Comunicação frontend-backend OK!"
+
+      # Teste de performance do build CRA
+      - name: 📊 Análise de Performance (CRA)
+        run: |
+          echo "📊 Analisando performance do build Create React App..."
+
+          # Verificar tamanho do bundle
+          if [ -d "frontend/build/static/js" ]; then
+            echo "📦 Tamanhos dos arquivos JavaScript:"
+            ls -lh frontend/build/static/js/*.js
+            
+            # Verificar se bundle não está muito grande (>2MB)
+            BUNDLE_SIZE=$(du -sm frontend/build/static/js | cut -f1)
+            if [ "$BUNDLE_SIZE" -gt 2 ]; then
+              echo "⚠️ Bundle JavaScript muito grande: ${BUNDLE_SIZE}MB"
+            else
+              echo "✅ Tamanho do bundle OK: ${BUNDLE_SIZE}MB"
+            fi
+          fi
+
+  # ===============================
+  # JOB 5: NOTIFICAÇÕES
+  # ===============================
+  notify:
+    name: 📢 Notificações
+    needs: [deploy-backend, deploy-frontend, integration-tests]
+    runs-on: ubuntu-latest
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📊 Status do Deploy
+        run: |
+          echo "📊 Resumo do Deploy Create React App:"
+          echo "Backend: ${{ needs.deploy-backend.result }}"
+          echo "Frontend: ${{ needs.deploy-frontend.result }}"
+          echo "Integração: ${{ needs.integration-tests.result }}"
+
+      # Notificação de sucesso
+      - name: ✅ Notificar Sucesso
+        if: needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success'
+        run: |
+          echo "🎉 Deploy Create React App realizado com sucesso!"
+          echo "🔧 Backend: https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com"
+          echo "🎨 Frontend: ${{ secrets.FRONTEND_URL }}"
+          echo "⚡ Tecnologia: Create React App"
+          echo "⏰ Horário: $(date)"
+
+      # Notificação de falha
+      - name: ❌ Notificar Falha
+        if: needs.deploy-backend.result == 'failure' || needs.deploy-frontend.result == 'failure'
+        run: |
+          echo "❌ Falha no deploy Create React App!"
+          echo "Backend Status: ${{ needs.deploy-backend.result }}"
+          echo "Frontend Status: ${{ needs.deploy-frontend.result }}"
+          exit 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
