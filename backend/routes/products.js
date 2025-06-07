@@ -221,4 +221,36 @@ router.get('/featured/list', async (req, res) => {
   }
 });
 
+// ROTA DE DEBUG - adicionar no início
+router.get('/debug', async (req, res) => {
+  try {
+    const tinyApiClient = require('../utils/tinyApiClient');
+
+    console.log('🔍 Debug - testando API Tiny diretamente...');
+
+    // Testar sem filtros
+    const response = await tinyApiClient.makeRequest('/produtos');
+
+    console.log('📊 Resposta da API Tiny:', {
+      total: response.data?.length || 0,
+      primeiros3: response.data?.slice(0, 3),
+      paginacao: response.pagination
+    });
+
+    res.json({
+      debug: true,
+      totalProdutos: response.data?.length || 0,
+      primeiros3Produtos: response.data?.slice(0, 3),
+      respostaCompleta: response
+    });
+
+  } catch (error) {
+    console.error('❌ Erro no debug:', error);
+    res.status(500).json({
+      error: error.message,
+      details: error.response?.data
+    });
+  }
+});
+
 module.exports = router;
