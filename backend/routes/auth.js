@@ -12,7 +12,8 @@ const TINY_CONFIG = {
 
 // Rota para iniciar autenticação (usar apenas uma vez)
 router.get('/login', (req, res) => {
-  const redirectUri = process.env.REDIRECT_URI || `${req.protocol}://${req.get('host')}/auth/callback`;
+  // ✅ CORREÇÃO 1: Forçar HTTPS
+  const redirectUri = 'https://catalog-471g.onrender.com/auth/callback';
   const authUrl = `${TINY_CONFIG.authUrl}/auth?client_id=${TINY_CONFIG.clientId}&redirect_uri=${redirectUri}&scope=openid&response_type=code`;
 
   console.log('Redirecionando para autenticação Tiny:', authUrl);
@@ -38,7 +39,8 @@ router.get('/callback', async (req, res) => {
       });
     }
 
-    const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+    // ✅ CORREÇÃO 2: Usar a mesma URL HTTPS do login
+    const redirectUri = 'https://catalog-471g.onrender.com/auth/callback';
 
     console.log('Trocando código por token...');
 
