@@ -1,222 +1,215 @@
-import { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import { TinyAPI } from '../services/TinyAPI';
 
-export const useProducts = (filters = {}) => {
+export const useProducts = (initialPage = 1) => {
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    totalPages: 1,
-    totalItems: 0
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    category: '',
+    priceMin: '',
+    priceMax: '',
+    inStock: true,
+    onSale: false
   });
 
-  // Produtos de fallback caso a API falhe
-  const fallbackProducts = [
-    {
-      id: 1,
-      nome: 'Smartphone Galaxy A54',
-      codigo: 'GAL-A54',
-      sku: 'SM-A546B',
-      preco: 1299.99,
-      descricao: 'Smartphone Samsung Galaxy A54 5G 128GB Câmera Tripla 50MP',
-      urlImagem: '/api/placeholder/300/300',
-      categoria: { id: 1, descricao: 'Smartphones' },
-      situacao: 'A',
-      estoque: 15
-    },
-    {
-      id: 2,
-      nome: 'Notebook Dell Inspiron 15',
-      codigo: 'DELL-I15',
-      sku: 'I15-3511',
-      preco: 2499.99,
-      descricao: 'Notebook Dell Inspiron 15 Intel Core i5 8GB 256GB SSD',
-      urlImagem: '/api/placeholder/300/300',
-      categoria: { id: 2, descricao: 'Notebooks' },
-      situacao: 'A',
-      estoque: 8
-    },
-    {
-      id: 3,
-      nome: 'Fone Bluetooth JBL',
-      codigo: 'JBL-T110BT',
-      sku: 'JBLT110BT',
-      preco: 149.99,
-      descricao: 'Fone de Ouvido Bluetooth JBL T110BT com Microfone',
-      urlImagem: '/api/placeholder/300/300',
-      categoria: { id: 3, descricao: 'Áudio' },
-      situacao: 'A',
-      estoque: 25
-    },
-    {
-      id: 4,
-      nome: 'Smart TV LG 50"',
-      codigo: 'LG-50UP7750',
-      sku: '50UP7750PSB',
-      preco: 1899.99,
-      descricao: 'Smart TV LED 50" LG 50UP7750 4K UHD',
-      urlImagem: '/api/placeholder/300/300',
-      categoria: { id: 4, descricao: 'TVs' },
-      situacao: 'A',
-      estoque: 5
-    },
-    {
-      id: 5,
-      nome: 'Mouse Gamer Logitech',
-      codigo: 'LOG-G502',
-      sku: 'G502HERO',
-      preco: 299.99,
-      descricao: 'Mouse Gamer Logitech G502 HERO 25K DPI',
-      urlImagem: '/api/placeholder/300/300',
-      categoria: { id: 5, descricao: 'Periféricos' },
-      situacao: 'A',
-      estoque: 12
-    },
-    {
-      id: 6,
-      nome: 'Teclado Mecânico Redragon',
-      codigo: 'RED-K552',
-      sku: 'K552KUMARA',
-      preco: 199.99,
-      descricao: 'Teclado Mecânico Gamer Redragon Kumara K552',
-      urlImagem: '/api/placeholder/300/300',
-      categoria: { id: 5, descricao: 'Periféricos' },
-      situacao: 'A',
-      estoque: 18
-    }
-  ];
+  // Load products from API
+  const loadProducts = useCallback(async (page = currentPage, retryCount = 0) => {
+    setLoading(true);
+    setError(null);
 
-  const fallbackCategories = [
-    { id: 1, descricao: 'Smartphones' },
-    { id: 2, descricao: 'Notebooks' },
-    { id: 3, descricao: 'Áudio' },
-    { id: 4, descricao: 'TVs' },
-    { id: 5, descricao: 'Periféricos' }
-  ];
-
-  // Carregar dados
-  const loadData = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      const response = await TinyAPI.fetchProducts(page);
 
-      // Carregar produtos e categorias em paralelo
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        api.products.getAll(filters),
-        api.categories.getAll()
-      ]);
+      if (response && response.retorno) {
+        if (response.retorno.status === 'OK' && response.retorno.produtos) {
+          const productList = response.retorno.produtos.map(p => p.produto);
+          setProducts(productList);
+          setTotalPages(parseInt(response.retorno.numero_paginas) || 1);
+        } else {
+          throw new Error('Resposta inválida da API');
+        }
+      } else {
+        throw new Error('Falha na comunicação com a API');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
 
-      setProducts(productsResponse.data || fallbackProducts);
-      setCategories(categoriesResponse.data || fallbackCategories);
-
-      // Atualizar paginação se disponível
-      if (productsResponse.pagination) {
-        setPagination(productsResponse.pagination);
+      // Retry logic for network errors
+      if (retryCount < 2 && (error.name === 'TypeError' || error.message.includes('fetch'))) {
+        setTimeout(() => {
+          loadProducts(page, retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+        return;
       }
 
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-      setError(err.message);
-
-      // Usar dados de fallback em caso de erro
-      setProducts(fallbackProducts);
-      setCategories(fallbackCategories);
+      setError(error.message || 'Erro ao carregar produtos');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
 
-  // Recarregar quando os filtros mudarem
-  useEffect(() => {
-    loadData();
-  }, [JSON.stringify(filters)]);
+  // Filter products based on search term and filters
+  const getFilteredProducts = useCallback(() => {
+    let filtered = [...products];
 
-  // Buscar produto por ID
-  const getProductById = async (id) => {
-    try {
-      const response = await api.products.getById(id);
-      return response.data;
-    } catch (err) {
-      console.error('Erro ao buscar produto:', err);
-      // Buscar no fallback
-      return fallbackProducts.find(p => p.id === parseInt(id));
-    }
-  };
-
-  // Atualizar estoque de um produto
-  const updateProductStock = async (productId) => {
-    try {
-      const stockResponse = await api.products.getStock(productId);
-      const updatedStock = stockResponse.data;
-
-      // Atualizar o produto na lista
-      setProducts(prev =>
-        prev.map(product =>
-          product.id === productId
-            ? { ...product, estoque: updatedStock.quantidade }
-            : product
-        )
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(product =>
+        product.nome.toLowerCase().includes(term) ||
+        (product.codigo && product.codigo.toLowerCase().includes(term))
       );
-
-      return updatedStock;
-    } catch (err) {
-      console.error('Erro ao atualizar estoque:', err);
-      return null;
     }
-  };
 
-  // Filtrar produtos localmente
-  const filterProducts = (searchTerm, categoryFilter, priceRange) => {
-    return products.filter(product => {
-      const matchesSearch = !searchTerm ||
-        product.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.codigo?.toLowerCase().includes(searchTerm.toLowerCase());
+    // Apply category filter
+    if (filters.category && filters.category !== '') {
+      filtered = filtered.filter(product => {
+        const productName = product.nome.toLowerCase();
+        const category = filters.category.toLowerCase();
 
-      const matchesCategory = !categoryFilter ||
-        product.categoria?.id.toString() === categoryFilter;
+        // Simple category matching based on product name
+        switch (category) {
+          case 'limpeza':
+            return productName.includes('limpador') ||
+              productName.includes('citron') ||
+              productName.includes('v floc') ||
+              productName.includes('removex');
+          case 'polimento':
+            return productName.includes('boina') ||
+              productName.includes('composto') ||
+              productName.includes('polidor');
+          case 'ferramentas':
+            return productName.includes('politriz') ||
+              productName.includes('soprador') ||
+              productName.includes('escova');
+          case 'acessorios':
+            return productName.includes('aplicador') ||
+              productName.includes('toalha') ||
+              productName.includes('pincel');
+          default:
+            return true;
+        }
+      });
+    }
 
-      const matchesPriceMin = !priceRange.min ||
-        product.preco >= parseFloat(priceRange.min);
+    // Apply price filters
+    if (filters.priceMin !== '') {
+      const minPrice = parseFloat(filters.priceMin);
+      filtered = filtered.filter(product => {
+        const price = product.preco_promocional > 0 ? product.preco_promocional : product.preco;
+        return price >= minPrice;
+      });
+    }
 
-      const matchesPriceMax = !priceRange.max ||
-        product.preco <= parseFloat(priceRange.max);
+    if (filters.priceMax !== '') {
+      const maxPrice = parseFloat(filters.priceMax);
+      filtered = filtered.filter(product => {
+        const price = product.preco_promocional > 0 ? product.preco_promocional : product.preco;
+        return price <= maxPrice;
+      });
+    }
 
-      return matchesSearch && matchesCategory && matchesPriceMin && matchesPriceMax;
+    // Apply stock filter
+    if (filters.inStock) {
+      filtered = filtered.filter(product => product.situacao === 'A');
+    }
+
+    // Apply sale filter
+    if (filters.onSale) {
+      filtered = filtered.filter(product => product.preco_promocional > 0);
+    }
+
+    return filtered;
+  }, [products, searchTerm, filters]);
+
+  // Handle page change
+  const handlePageChange = useCallback((newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+  }, [currentPage, totalPages]);
+
+  // Handle search
+  const handleSearch = useCallback((term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page when searching
+  }, []);
+
+  // Handle filter change
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    setCurrentPage(1); // Reset to first page when filtering
+  }, []);
+
+  // Reload products
+  const reloadProducts = useCallback(() => {
+    loadProducts(currentPage);
+  }, [loadProducts, currentPage]);
+
+  // Clear filters
+  const clearFilters = useCallback(() => {
+    setFilters({
+      category: '',
+      priceMin: '',
+      priceMax: '',
+      inStock: true,
+      onSale: false
     });
-  };
+    setSearchTerm('');
+    setCurrentPage(1);
+  }, []);
 
-  // Ordenar produtos
-  const sortProducts = (productsToSort, sortBy) => {
-    const sorted = [...productsToSort];
+  // Load products when page changes
+  useEffect(() => {
+    loadProducts(currentPage);
+  }, [currentPage, loadProducts]);
 
-    switch (sortBy) {
-      case 'name_asc':
-        return sorted.sort((a, b) => a.nome.localeCompare(b.nome));
-      case 'name_desc':
-        return sorted.sort((a, b) => b.nome.localeCompare(a.nome));
-      case 'price_asc':
-        return sorted.sort((a, b) => a.preco - b.preco);
-      case 'price_desc':
-        return sorted.sort((a, b) => b.preco - a.preco);
-      case 'newest':
-        return sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      default:
-        return sorted;
+  // Get product details
+  const getProductDetails = useCallback(async (productId) => {
+    try {
+      const response = await TinyAPI.fetchProductDetails(productId);
+      if (response && response.retorno && response.retorno.produto) {
+        return response.retorno.produto;
+      }
+      throw new Error('Produto não encontrado');
+    } catch (error) {
+      console.error('Erro ao buscar detalhes do produto:', error);
+      throw error;
     }
-  };
+  }, []);
+
+  const filteredProducts = getFilteredProducts();
 
   return {
-    products,
-    categories,
+    // Data
+    products: filteredProducts,
+    allProducts: products,
     loading,
     error,
-    pagination,
-    loadData,
-    getProductById,
-    updateProductStock,
-    filterProducts,
-    sortProducts
+
+    // Pagination
+    currentPage,
+    totalPages,
+
+    // Search and filters
+    searchTerm,
+    filters,
+
+    // Actions
+    handlePageChange,
+    handleSearch,
+    handleFilterChange,
+    reloadProducts,
+    clearFilters,
+    getProductDetails,
+
+    // Utils
+    hasFilters: searchTerm.trim() !== '' || Object.values(filters).some(v => v !== '' && v !== true && v !== false),
+    totalProducts: products.length,
+    filteredCount: filteredProducts.length
   };
 };
