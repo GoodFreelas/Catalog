@@ -12,7 +12,7 @@ const TINY_CONFIG = {
 
 // Rota para iniciar autenticação (usar apenas uma vez)
 router.get('/login', (req, res) => {
-  const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+  const redirectUri = process.env.REDIRECT_URI || `${req.protocol}://${req.get('host')}/auth/callback`;
   const authUrl = `${TINY_CONFIG.authUrl}/auth?client_id=${TINY_CONFIG.clientId}&redirect_uri=${redirectUri}&scope=openid&response_type=code`;
 
   console.log('Redirecionando para autenticação Tiny:', authUrl);
