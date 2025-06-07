@@ -7,57 +7,29 @@ const router = express.Router();
 const TINY_CONFIG = {
   clientId: process.env.TINY_CLIENT_ID,
   clientSecret: process.env.TINY_CLIENT_SECRET,
-  authUrl: process.env.TINY_AUTH_URL,
-  baseUrl: process.env.TINY_BASE_URL,
-  redirectUri: process.env.REDIRECT_URI
+  authUrl: process.env.TINY_AUTH_URL
 };
 
-// Validar configurações necessárias
-if (!TINY_CONFIG.clientId || !TINY_CONFIG.clientSecret || !TINY_CONFIG.authUrl) {
-  console.error('❌ Configurações OAuth2 da Tiny não encontradas no .env');
-  console.error('Verifique: TINY_CLIENT_ID, TINY_CLIENT_SECRET, TINY_AUTH_URL');
-}
-
-// Rota para iniciar autenticação OAuth 2.0
+// Rota para iniciar autenticação (usar apenas uma vez)
 router.get('/login', (req, res) => {
-  try {
-    const state = Math.random().toString(36).substring(7); // Estado para segurança
+  // ✅ CORREÇÃO 1: Forçar HTTPS
+  const redirectUri = 'https://catalog-471g.onrender.com/auth/callback';
+  const authUrl = `${TINY_CONFIG.authUrl}/auth?client_id=${TINY_CONFIG.clientId}&redirect_uri=${redirectUri}&scope=openid&response_type=code`;
 
-    const authUrl = `${TINY_CONFIG.authUrl}/auth?` + new URLSearchParams({
-      client_id: TINY_CONFIG.clientId,
-      redirect_uri: TINY_CONFIG.redirectUri,
-      scope: 'openid profile email', // Ajuste os scopes conforme necessário
-      response_type: 'code',
-      state: state
-    }).toString();
-
-    console.log('🔐 Iniciando autenticação OAuth 2.0');
-    console.log('📍 Redirect URI:', TINY_CONFIG.redirectUri);
-    console.log('🔗 Auth URL:', authUrl);
-
-    // Em produção, você pode salvar o state em sessão/cache para validar
-    res.redirect(authUrl);
-
-  } catch (error) {
-    console.error('❌ Erro ao iniciar autenticação:', error);
-    res.status(500).json({
-      error: 'Erro ao iniciar processo de autenticação',
-      details: error.message
-    });
-  }
+  console.log('Redirecionando para autenticação Tiny:', authUrl);
+  res.redirect(authUrl);
 });
 
-// Callback de autenticação OAuth 2.0
+// Callback de autenticação
 router.get('/callback', async (req, res) => {
   try {
-    const { code, error, state } = req.query;
+    const { code, error } = req.query;
 
     if (error) {
-      console.error('❌ Erro na autorização OAuth2:', error);
+      console.error('Erro na autorização:', error);
       return res.status(400).json({
-        error: 'Erro na autorização OAuth2',
-        details: error,
-        description: req.query.error_description
+        error: 'Erro na autorização',
+        details: error
       });
     }
 
@@ -67,73 +39,53 @@ router.get('/callback', async (req, res) => {
       });
     }
 
-    console.log('🔄 Trocando código por tokens...');
-    console.log('📝 Authorization code recebido:', code.substring(0, 20) + '...');
+    // ✅ CORREÇÃO 2: Usar a mesma URL HTTPS do login
+    const redirectUri = 'https://catalog-471g.onrender.com/auth/callback';
 
-    // Fazer requisição para trocar código por tokens
-    const tokenUrl = `${TINY_CONFIG.authUrl}/token`;
+    console.log('Trocando código por token...');
 
-    const response = await axios.post(
-      tokenUrl,
+    const response = await axios.post(`${TINY_CONFIG.authUrl}/token`,
       new URLSearchParams({
         grant_type: 'authorization_code',
         client_id: TINY_CONFIG.clientId,
         client_secret: TINY_CONFIG.clientSecret,
-        redirect_uri: TINY_CONFIG.redirectUri,
+        redirect_uri: redirectUri,
         code: code
       }),
       {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
-        },
-        timeout: 30000
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       }
     );
 
     const tokenData = response.data;
-    console.log('✅ Tokens recebidos com sucesso');
-    console.log('📊 Token info:', {
-      token_type: tokenData.token_type,
-      expires_in: tokenData.expires_in,
-      scope: tokenData.scope
-    });
 
-    // Salvar tokens usando o token manager
+    // Salvar tokens
     await tokenManager.saveTokens({
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresIn: tokenData.expires_in,
-      tokenType: tokenData.token_type || 'Bearer',
-      scope: tokenData.scope
+      tokenType: tokenData.token_type
     });
 
-    console.log('💾 Tokens salvos com sucesso!');
+    console.log('✅ Tokens salvos com sucesso!');
 
-    // Resposta de sucesso
     res.json({
       success: true,
-      message: 'Autenticação OAuth2 realizada com sucesso!',
+      message: 'Autenticação realizada com sucesso!',
       data: {
         tokenType: tokenData.token_type,
         expiresIn: tokenData.expires_in,
-        scope: tokenData.scope,
-        timestamp: new Date().toISOString()
+        scope: tokenData.scope
       }
     });
 
   } catch (error) {
-    console.error('❌ Erro no callback de autenticação:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url
-    });
-
+    console.error('Erro no callback de autenticação:', error.response?.data || error.message);
     res.status(500).json({
-      error: 'Erro ao processar autenticação OAuth2',
-      details: error.response?.data || error.message,
-      timestamp: new Date().toISOString()
+      error: 'Erro ao processar autenticação',
+      details: error.response?.data || error.message
     });
   }
 });
@@ -143,29 +95,15 @@ router.get('/status', async (req, res) => {
   try {
     const tokenInfo = await tokenManager.getValidToken();
 
-    if (tokenInfo) {
-      res.json({
-        authenticated: true,
-        tokenType: tokenInfo.tokenType,
-        expiresAt: new Date(tokenInfo.expiresAt).toISOString(),
-        timeToExpire: Math.max(0, tokenInfo.expiresAt - Date.now()),
-        isExpiring: (tokenInfo.expiresAt - Date.now()) < 300000, // 5 minutos
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.json({
-        authenticated: false,
-        message: 'Token não encontrado',
-        timestamp: new Date().toISOString()
-      });
-    }
-
+    res.json({
+      authenticated: !!tokenInfo,
+      tokenType: tokenInfo?.tokenType,
+      expiresAt: tokenInfo?.expiresAt
+    });
   } catch (error) {
-    console.error('❌ Erro ao verificar status:', error.message);
     res.json({
       authenticated: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
+      error: error.message
     });
   }
 });
@@ -173,81 +111,20 @@ router.get('/status', async (req, res) => {
 // Renovar token manualmente
 router.post('/refresh', async (req, res) => {
   try {
-    console.log('🔄 Renovando token manualmente...');
-
     const tokenInfo = await tokenManager.refreshToken();
 
     res.json({
       success: true,
       message: 'Token renovado com sucesso',
-      data: {
-        tokenType: tokenInfo.tokenType,
-        expiresAt: new Date(tokenInfo.expiresAt).toISOString(),
-        timestamp: new Date().toISOString()
-      }
+      expiresAt: tokenInfo.expiresAt
     });
-
   } catch (error) {
-    console.error('❌ Erro ao renovar token:', error.message);
+    console.error('Erro ao renovar token:', error);
     res.status(500).json({
       error: 'Erro ao renovar token',
-      details: error.message,
-      timestamp: new Date().toISOString()
+      details: error.message
     });
   }
 });
 
-// Logout - limpar tokens
-router.post('/logout', async (req, res) => {
-  try {
-    console.log('🚪 Fazendo logout...');
-
-    await tokenManager.clearTokens();
-
-    res.json({
-      success: true,
-      message: 'Logout realizado com sucesso',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('❌ Erro no logout:', error.message);
-    res.status(500).json({
-      error: 'Erro no logout',
-      details: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Endpoint de debug para verificar configurações
-router.get('/debug', (req, res) => {
-  res.json({
-    config: {
-      clientId: TINY_CONFIG.clientId ? `${TINY_CONFIG.clientId.substring(0, 20)}...` : 'NOT_SET',
-      clientSecret: TINY_CONFIG.clientSecret ? 'SET' : 'NOT_SET',
-      authUrl: TINY_CONFIG.authUrl,
-      baseUrl: TINY_CONFIG.baseUrl,
-      redirectUri: TINY_CONFIG.redirectUri
-    },
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Middleware para verificar autenticação (para usar em outras rotas)
-const requireAuth = async (req, res, next) => {
-  try {
-    const tokenInfo = await tokenManager.getValidToken();
-    req.tokenInfo = tokenInfo;
-    next();
-  } catch (error) {
-    res.status(401).json({
-      error: 'Autenticação necessária',
-      details: error.message,
-      authUrl: `/auth/login`
-    });
-  }
-};
-
-module.exports = { router, requireAuth };
+module.exports = router;
