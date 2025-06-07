@@ -253,4 +253,71 @@ router.get('/debug', async (req, res) => {
   }
 });
 
+// ROTA PARA DESCOBRIR ENDPOINTS VÁLIDOS
+router.get('/discover', async (req, res) => {
+  try {
+    const tinyApiClient = require('../utils/tinyApiClient');
+
+    const endpointsToTest = [
+      '/produtos',
+      '/produto',
+      '/products',
+      '/items',
+      '/categorias',
+      '/categoria',
+      '/estoque'
+    ];
+
+    const results = {};
+
+    for (const endpoint of endpointsToTest) {
+      try {
+        const response = await tinyApiClient.makeRequest(endpoint);
+        results[endpoint] = {
+          status: 'SUCCESS',
+          hasData: !!response.data,
+          count: Array.isArray(response.data) ? response.data.length : 'N/A'
+        };
+      } catch (error) {
+        results[endpoint] = {
+          status: 'ERROR',
+          code: error.response?.status || 'unknown'
+        };
+      }
+
+      // Delay para não sobrecarregar
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    res.json({ discovery: results });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ENDPOINT TEMPORÁRIO COM DADOS MOCK
+router.get('/mock', (req, res) => {
+  const mockProducts = [
+    {
+      id: 1,
+      nome: 'Produto Teste 1',
+      codigo: 'TEST-001',
+      preco: 199.99,
+      descricao: 'Produto de teste',
+      urlImagem: '/api/placeholder/300/300',
+      categoria: { id: 1, descricao: 'Categoria Teste' },
+      situacao: 'A',
+      estoque: 10
+    }
+  ];
+
+  res.json({
+    data: mockProducts,
+    pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+    success: true,
+    note: 'Dados mock para testar interface'
+  });
+});
+
 module.exports = router;
