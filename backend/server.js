@@ -1,341 +1,480 @@
-// backend/server.js - Sistema completo de sincronização com Tiny API
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
+const axios = require('axios');
 const cron = require('node-cron');
-const fetch = require('node-fetch');
+const cors = require('cors');
+require('dotenv').config();
+
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Configurações
-const PORT = process.env.PORT || 3001;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/tiny-products';
-const TINY_TOKEN = process.env.TINY_TOKEN || '6126c965d5c8d23c0da7b7bc33372c40463b9368fce27eeb36c6e0b3a5e13929';
-
-// Middleware
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
+// Configuração do MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/tiny_products', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
 // Schema do Produto
-const ProductSchema = new mongoose.Schema({
-  tinyId: { type: String, required: true, unique: true, index: true },
-  nome: { type: String, required: true },
+const productSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  nome: String,
   codigo: String,
-  preco: { type: Number, required: true },
-  preco_promocional: { type: Number, default: 0 },
   unidade: String,
-  situacao: { type: String, default: 'A' },
+  preco: Number,
+  preco_promocional: Number,
+  ncm: String,
+  origem: String,
   gtin: String,
-  categoria: String,
-  marca: String,
-  descricao_complementar: String,
+  gtin_embalagem: String,
+  localizacao: String,
   peso_liquido: Number,
   peso_bruto: Number,
-  anexos: [{
-    anexo: String,
-    _id: false
-  }],
-  lastSync: { type: Date, default: Date.now },
-  dataSync: { type: Date, default: Date.now }
-}, {
-  timestamps: true
+  estoque_minimo: Number,
+  estoque_maximo: Number,
+  id_fornecedor: Number,
+  nome_fornecedor: String,
+  codigo_fornecedor: String,
+  codigo_pelo_fornecedor: String,
+  unidade_por_caixa: String,
+  preco_custo: Number,
+  preco_custo_medio: Number,
+  situacao: String,
+  tipo: String,
+  classe_ipi: String,
+  valor_ipi_fixo: String,
+  cod_lista_servicos: String,
+  descricao_complementar: String,
+  garantia: String,
+  cest: String,
+  obs: String,
+  tipoVariacao: String,
+  variacoes: String,
+  idProdutoPai: String,
+  sob_encomenda: String,
+  dias_preparacao: String,
+  marca: String,
+  tipoEmbalagem: String,
+  alturaEmbalagem: String,
+  comprimentoEmbalagem: String,
+  larguraEmbalagem: String,
+  diametroEmbalagem: String,
+  qtd_volumes: String,
+  categoria: String,
+  anexos: [{ anexo: String }],
+  imagens_externas: [String],
+  classe_produto: String,
+  seo_title: String,
+  seo_keywords: String,
+  link_video: String,
+  seo_description: String,
+  slug: String,
+  last_updated: { type: Date, default: Date.now },
+  sync_date: { type: Date, default: Date.now }
 });
 
-const Product = mongoose.model('Product', ProductSchema);
+const Product = mongoose.model('Product', productSchema);
 
-// Schema de Log de Sync
-const SyncLogSchema = new mongoose.Schema({
-  startTime: Date,
-  endTime: Date,
-  totalProducts: Number,
-  newProducts: Number,
-  updatedProducts: Number,
-  errors: Number,
-  status: { type: String, enum: ['running', 'completed', 'failed'] },
-  errorDetails: [String]
-}, {
-  timestamps: true
-});
+// Configuração da API Tiny
+const TINY_API_CONFIG = {
+  token: process.env.TINY_TOKEN || '6126c965d5c8d23c0da7b7bc33372c40463b9368fce27eeb36c6e0b3a5e13929',
+  baseURL: 'https://api.tiny.com.br',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  }
+};
 
-const SyncLog = mongoose.model('SyncLog', SyncLogSchema);
-
-// Classe para gerenciar a sincronização
-class TinySync {
-  constructor() {
-    this.isRunning = false;
-    this.currentLog = null;
-    this.delay = 2000; // 2s entre requisições
+// Rate Limiter para API do Tiny (25 req/min)
+class TinyRateLimiter {
+  constructor(maxRequests = 25, windowMs = 60000) { // 25 req por 60 segundos
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+    this.requests = [];
+    this.totalRequests = 0;
   }
 
-  async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  async waitForAvailability() {
+    const now = Date.now();
+
+    // Remove requisições antigas (fora da janela de tempo)
+    this.requests = this.requests.filter(time => now - time < this.windowMs);
+
+    // Se atingiu o limite, aguarda
+    if (this.requests.length >= this.maxRequests) {
+      const oldestRequest = Math.min(...this.requests);
+      const waitTime = this.windowMs - (now - oldestRequest) + 1000; // +1s de segurança
+
+      console.log(`⏱️ Rate limit atingido. Aguardando ${Math.ceil(waitTime / 1000)}s...`);
+      console.log(`📊 Requisições na janela atual: ${this.requests.length}/${this.maxRequests}`);
+
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return this.waitForAvailability(); // Verifica novamente após esperar
+    }
+
+    // Registra a nova requisição
+    this.requests.push(now);
+    this.totalRequests++;
+
+    console.log(`🌐 Requisição ${this.totalRequests} - (${this.requests.length}/${this.maxRequests} na janela atual)`);
   }
 
-  async fetchFromTiny(endpoint, body) {
-    const response = await fetch(`https://api.tiny.com.br/api2/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(body)
-    });
+  getStats() {
+    const now = Date.now();
+    const activeRequests = this.requests.filter(time => now - time < this.windowMs);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (data.retorno?.status === 'Erro') {
-      throw new Error(data.retorno.erros?.[0]?.erro || 'Erro na API Tiny');
-    }
-
-    return data;
-  }
-
-  async getAllProductIds() {
-    console.log('📋 Buscando lista de produtos...');
-    const allProducts = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      try {
-        const response = await this.fetchFromTiny('produtos.pesquisa.php', {
-          token: TINY_TOKEN,
-          formato: 'json',
-          pagina: page.toString()
-        });
-
-        if (response.retorno?.produtos) {
-          const products = response.retorno.produtos.map(p => ({
-            id: p.produto.id,
-            nome: p.produto.nome,
-            preco: p.produto.preco,
-            preco_promocional: p.produto.preco_promocional,
-            situacao: p.produto.situacao
-          }));
-
-          allProducts.push(...products);
-          console.log(`📄 Página ${page}: ${products.length} produtos encontrados`);
-
-          const totalPages = parseInt(response.retorno.numero_paginas);
-          hasMore = page < totalPages;
-          page++;
-        } else {
-          hasMore = false;
-        }
-
-        // Delay entre páginas
-        if (hasMore) {
-          await this.delay(this.delay);
-        }
-
-      } catch (error) {
-        console.error(`❌ Erro na página ${page}:`, error.message);
-
-        // Se for rate limit, aguardar mais tempo
-        if (error.message.includes('API Bloqueada')) {
-          console.log('⏳ Rate limit detectado, aguardando 2 minutos...');
-          await this.delay(120000); // 2 minutos
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    console.log(`✅ Total de produtos encontrados: ${allProducts.length}`);
-    return allProducts;
-  }
-
-  async getProductDetails(productId) {
-    try {
-      const response = await this.fetchFromTiny('produto.obter.php', {
-        token: TINY_TOKEN,
-        formato: 'json',
-        id: productId
-      });
-
-      return response.retorno?.produto;
-    } catch (error) {
-      if (error.message.includes('API Bloqueada')) {
-        console.log('⏳ Rate limit no detalhe, aguardando...');
-        await this.delay(60000); // 1 minuto
-        return this.getProductDetails(productId); // Retry
-      }
-      throw error;
-    }
-  }
-
-  async syncAllProducts() {
-    if (this.isRunning) {
-      console.log('⚠️ Sincronização já está rodando');
-      return;
-    }
-
-    this.isRunning = true;
-    console.log('🚀 Iniciando sincronização completa...');
-
-    // Criar log de sincronização
-    this.currentLog = new SyncLog({
-      startTime: new Date(),
-      status: 'running',
-      totalProducts: 0,
-      newProducts: 0,
-      updatedProducts: 0,
-      errors: 0,
-      errorDetails: []
-    });
-    await this.currentLog.save();
-
-    try {
-      // Buscar todos os IDs de produtos
-      const productList = await this.getAllProductIds();
-      this.currentLog.totalProducts = productList.length;
-      await this.currentLog.save();
-
-      // Sincronizar cada produto
-      for (let i = 0; i < productList.length; i++) {
-        const basicProduct = productList[i];
-
-        try {
-          console.log(`🔄 Sincronizando produto ${i + 1}/${productList.length}: ${basicProduct.nome}`);
-
-          // Buscar detalhes completos
-          const fullProduct = await this.getProductDetails(basicProduct.id);
-
-          if (fullProduct) {
-            // Verificar se produto já existe
-            const existingProduct = await Product.findOne({ tinyId: basicProduct.id });
-
-            const productData = {
-              tinyId: basicProduct.id,
-              nome: fullProduct.nome?.trim() || '',
-              codigo: fullProduct.codigo || '',
-              preco: parseFloat(fullProduct.preco) || 0,
-              preco_promocional: parseFloat(fullProduct.preco_promocional) || 0,
-              unidade: fullProduct.unidade || '',
-              situacao: fullProduct.situacao || 'A',
-              gtin: fullProduct.gtin || '',
-              categoria: fullProduct.categoria || '',
-              marca: fullProduct.marca || '',
-              descricao_complementar: fullProduct.descricao_complementar || '',
-              peso_liquido: parseFloat(fullProduct.peso_liquido) || 0,
-              peso_bruto: parseFloat(fullProduct.peso_bruto) || 0,
-              anexos: fullProduct.anexos || [],
-              lastSync: new Date()
-            };
-
-            if (existingProduct) {
-              // Atualizar produto existente
-              await Product.findByIdAndUpdate(existingProduct._id, productData);
-              this.currentLog.updatedProducts++;
-              console.log(`✅ Produto atualizado: ${productData.nome}`);
-            } else {
-              // Criar novo produto
-              const newProduct = new Product(productData);
-              await newProduct.save();
-              this.currentLog.newProducts++;
-              console.log(`🆕 Novo produto criado: ${productData.nome}`);
-            }
-          }
-
-        } catch (error) {
-          console.error(`❌ Erro ao sincronizar produto ${basicProduct.id}:`, error.message);
-          this.currentLog.errors++;
-          this.currentLog.errorDetails.push(`${basicProduct.id}: ${error.message}`);
-        }
-
-        // Delay entre produtos
-        await this.delay(this.delay);
-
-        // Salvar progresso a cada 10 produtos
-        if ((i + 1) % 10 === 0) {
-          await this.currentLog.save();
-          console.log(`📊 Progresso: ${i + 1}/${productList.length} (${Math.round((i + 1) / productList.length * 100)}%)`);
-        }
-      }
-
-      // Finalizar sincronização
-      this.currentLog.endTime = new Date();
-      this.currentLog.status = 'completed';
-      await this.currentLog.save();
-
-      console.log('🎉 Sincronização concluída!');
-      console.log(`📊 Resumo: ${this.currentLog.newProducts} novos, ${this.currentLog.updatedProducts} atualizados, ${this.currentLog.errors} erros`);
-
-    } catch (error) {
-      console.error('💥 Erro na sincronização:', error);
-      this.currentLog.status = 'failed';
-      this.currentLog.endTime = new Date();
-      this.currentLog.errorDetails.push(`Erro geral: ${error.message}`);
-      await this.currentLog.save();
-    } finally {
-      this.isRunning = false;
-    }
-  }
-
-  async quickSync() {
-    // Sincronização rápida - apenas produtos modificados nas últimas 24h
-    console.log('⚡ Iniciando sincronização rápida...');
-    // Implementar lógica para buscar apenas produtos modificados
+    return {
+      total_requests: this.totalRequests,
+      requests_in_current_window: activeRequests.length,
+      max_requests_per_window: this.maxRequests,
+      window_duration_ms: this.windowMs,
+      available_slots: this.maxRequests - activeRequests.length
+    };
   }
 }
 
-const tinySync = new TinySync();
+// Instanciar o rate limiter com configurações do ambiente
+const tinyRateLimiter = new TinyRateLimiter(
+  parseInt(process.env.TINY_RATE_LIMIT_REQUESTS) || 25,
+  parseInt(process.env.TINY_RATE_LIMIT_WINDOW) || 60000
+);
 
-// Rotas da API
-app.get('/api/produtos', async (req, res) => {
+// Função para fazer requisições à API do Tiny com rate limiting
+async function tinyApiRequest(endpoint, data) {
   try {
-    const { page = 1, limit = 20, search, categoria, situacao } = req.query;
+    // Aguardar disponibilidade antes de fazer a requisição
+    await tinyRateLimiter.waitForAvailability();
 
-    // Construir query
-    const query = {};
-    if (search) {
-      query.$or = [
-        { nome: { $regex: search, $options: 'i' } },
-        { codigo: { $regex: search, $options: 'i' } }
-      ];
-    }
-    if (categoria) query.categoria = categoria;
-    if (situacao) query.situacao = situacao;
+    console.log(`🌐 Fazendo requisição para: ${endpoint}`);
+    console.log(`📤 Dados enviados:`, { ...data, token: '***' }); // Ocultar token nos logs
 
-    // Buscar produtos com paginação
-    const products = await Product.find(query)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ nome: 1 });
-
-    const total = await Product.countDocuments(query);
-    const totalPages = Math.ceil(total / limit);
-
-    res.json({
-      retorno: {
-        status: 'OK',
-        produtos: products.map(p => ({ produto: p })),
-        pagina: page.toString(),
-        numero_paginas: totalPages,
-        total_produtos: total
+    const response = await axios.post(`${TINY_API_CONFIG.baseURL}${endpoint}`,
+      new URLSearchParams({
+        token: TINY_API_CONFIG.token,
+        formato: 'json',
+        ...data
+      }).toString(),
+      {
+        headers: TINY_API_CONFIG.headers,
+        timeout: 30000 // 30 segundos de timeout
       }
+    );
+
+    console.log(`📥 Status da resposta: ${response.status}`);
+
+    if (response.data.retorno) {
+      console.log(`📋 Status do retorno: ${response.data.retorno.status}`);
+      if (response.data.retorno.erro) {
+        console.log(`⚠️ Erro retornado pela API:`, response.data.retorno.erro);
+      }
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error(`❌ Erro na requisição para ${endpoint}:`);
+    console.error(`📋 Mensagem:`, error.message);
+
+    if (error.response) {
+      console.error(`📊 Status HTTP:`, error.response.status);
+      console.error(`📄 Dados da resposta:`, error.response.data);
+    } else if (error.request) {
+      console.error(`📡 Erro de rede - sem resposta do servidor`);
+    }
+
+    throw error;
+  }
+}
+
+// Função para buscar todos os produtos (com paginação e rate limiting)
+async function fetchAllProducts() {
+  let allProducts = [];
+  let currentPage = 1;
+  let hasMorePages = true;
+
+  console.log('📦 Iniciando busca paginada de produtos...');
+
+  while (hasMorePages) {
+    try {
+      console.log(`📄 Buscando página ${currentPage}...`);
+
+      const response = await tinyApiRequest('/api2/produtos.pesquisa.php', {
+        pagina: currentPage
+      });
+
+      if (response.retorno.status === 'OK' && response.retorno.produtos) {
+        const products = response.retorno.produtos;
+        allProducts = allProducts.concat(products);
+
+        // Verificar se há mais páginas
+        const totalPages = response.retorno.numero_paginas || 1;
+        hasMorePages = currentPage < totalPages;
+
+        console.log(`✅ Página ${currentPage}/${totalPages} processada`);
+        console.log(`📊 Produtos encontrados nesta página: ${products.length}`);
+        console.log(`📈 Total acumulado: ${allProducts.length}`);
+
+        currentPage++;
+
+        // Rate limiter já controla o timing, não precisa de delay adicional aqui
+
+      } else {
+        console.log('⚠️ Nenhum produto encontrado ou erro na resposta:', response.retorno);
+        hasMorePages = false;
+      }
+    } catch (error) {
+      console.error(`❌ Erro ao buscar página ${currentPage}:`, error.message);
+
+      // Em caso de erro de rate limit, tenta novamente após esperar
+      if (error.response?.status === 429) {
+        console.log('⏱️ Rate limit detectado pelo servidor. Aguardando 2 minutos...');
+        await new Promise(resolve => setTimeout(resolve, 120000)); // 2 minutos
+        continue; // Tenta a mesma página novamente
+      }
+
+      hasMorePages = false;
+    }
+  }
+
+  console.log(`🎯 Busca concluída: ${allProducts.length} produtos encontrados`);
+  return allProducts;
+}
+
+// Função para buscar detalhes de um produto específico
+async function fetchProductDetails(productId) {
+  try {
+    const response = await tinyApiRequest('/api2/produto.obter.php', {
+      id: productId
     });
 
+    if (response.retorno.status === 'OK' && response.retorno.produto) {
+      return response.retorno.produto;
+    } else {
+      console.log(`Produto ${productId} não encontrado ou erro:`, response.retorno);
+      return null;
+    }
+  } catch (error) {
+    console.error(`Erro ao buscar detalhes do produto ${productId}:`, error.message);
+    return null;
+  }
+}
+
+// Função para salvar ou atualizar produto no MongoDB
+async function saveOrUpdateProduct(productData) {
+  try {
+    const existingProduct = await Product.findOne({ id: productData.id });
+
+    if (existingProduct) {
+      // Atualizar produto existente
+      await Product.findOneAndUpdate(
+        { id: productData.id },
+        {
+          ...productData,
+          last_updated: new Date(),
+          sync_date: new Date()
+        },
+        { new: true }
+      );
+      console.log(`Produto ${productData.id} atualizado: ${productData.nome}`);
+    } else {
+      // Criar novo produto
+      const newProduct = new Product({
+        ...productData,
+        sync_date: new Date()
+      });
+      await newProduct.save();
+      console.log(`Produto ${productData.id} criado: ${productData.nome}`);
+    }
+  } catch (error) {
+    console.error(`Erro ao salvar produto ${productData.id}:`, error.message);
+  }
+}
+
+// Função principal de sincronização
+async function syncProducts() {
+  try {
+    console.log('🔄 Iniciando sincronização de produtos...');
+    console.log('📅 Data/Hora:', new Date().toLocaleString('pt-BR'));
+    const startTime = new Date();
+
+    // Testar conexão com a API do Tiny primeiro
+    console.log('🔍 Testando conexão com API do Tiny...');
+    const testResponse = await tinyApiRequest('/api2/produtos.pesquisa.php', { pagina: 1 });
+
+    if (testResponse.retorno.status !== 'OK') {
+      throw new Error(`Erro na API do Tiny: ${testResponse.retorno.erro || 'Status não OK'}`);
+    }
+
+    console.log('✅ Conexão com API do Tiny estabelecida');
+
+    // Buscar lista de produtos
+    console.log('📦 Buscando lista de produtos...');
+    const productsList = await fetchAllProducts();
+    console.log(`📊 Total de produtos encontrados: ${productsList.length}`);
+
+    if (productsList.length === 0) {
+      console.log('⚠️ Nenhum produto encontrado para sincronizar');
+      await saveSyncLog(0, 0, 'Nenhum produto encontrado');
+      return;
+    }
+
+    // Buscar detalhes de cada produto e salvar no banco
+    let processedCount = 0;
+    let errorCount = 0;
+
+    console.log('🔍 Iniciando busca de detalhes dos produtos...');
+
+    for (let i = 0; i < productsList.length; i++) {
+      const productSummary = productsList[i];
+      const productName = productSummary.produto?.nome || 'Nome não disponível';
+      const productId = productSummary.produto?.id;
+
+      console.log(`⏳ ${i + 1}/${productsList.length}: ${productName} (ID: ${productId})`);
+
+      try {
+        // Buscar detalhes completos do produto (rate limiter aplicado automaticamente)
+        const productDetails = await fetchProductDetails(productId);
+
+        if (productDetails) {
+          await saveOrUpdateProduct(productDetails);
+          processedCount++;
+          console.log(`✅ Produto ${productId} salvo com sucesso`);
+        } else {
+          console.log(`⚠️ Detalhes do produto ${productId} não encontrados`);
+          errorCount++;
+        }
+      } catch (error) {
+        console.error(`❌ Erro ao processar produto ${productId}:`, error.message);
+        errorCount++;
+
+        // Se for erro de rate limit, aguarda mais tempo
+        if (error.response?.status === 429) {
+          console.log('⏱️ Rate limit crítico detectado. Aguardando 3 minutos...');
+          await new Promise(resolve => setTimeout(resolve, 180000)); // 3 minutos
+        }
+      }
+
+      // Log de progresso a cada 10 produtos
+      if ((i + 1) % 10 === 0) {
+        const stats = tinyRateLimiter.getStats();
+        console.log(`📈 Progresso: ${i + 1}/${productsList.length} | Sucessos: ${processedCount} | Erros: ${errorCount}`);
+        console.log(`📊 Rate Limiter: ${stats.requests_in_current_window}/${stats.max_requests_per_window} requisições na janela atual`);
+      }
+    }
+
+    const endTime = new Date();
+    const duration = (endTime - startTime) / 1000;
+
+    console.log('🎉 Sincronização concluída!');
+    console.log(`⏱️ Duração: ${duration.toFixed(2)} segundos`);
+    console.log(`✅ Produtos processados com sucesso: ${processedCount}`);
+    console.log(`❌ Produtos com erro: ${errorCount}`);
+    console.log(`📊 Total no banco: ${await Product.countDocuments()}`);
+
+    // Salvar log de sincronização
+    await saveSyncLog(processedCount, duration, errorCount > 0 ? `${errorCount} produtos com erro` : null);
+
+  } catch (error) {
+    console.error('❌ Erro crítico durante a sincronização:', error.message);
+    console.error('📋 Stack trace:', error.stack);
+
+    // Salvar log de erro
+    await saveSyncLog(0, 0, error.message);
+    throw error; // Re-throw para que o caller saiba que houve erro
+  }
+}
+
+// Schema para logs de sincronização
+const syncLogSchema = new mongoose.Schema({
+  date: { type: Date, default: Date.now },
+  products_processed: Number,
+  duration_seconds: Number,
+  status: { type: String, enum: ['success', 'error'], default: 'success' },
+  error_message: String
+});
+
+const SyncLog = mongoose.model('SyncLog', syncLogSchema);
+
+// Função para salvar log de sincronização
+async function saveSyncLog(productsProcessed, duration, errorMessage = null) {
+  try {
+    const log = new SyncLog({
+      products_processed: productsProcessed,
+      duration_seconds: duration,
+      status: errorMessage ? 'error' : 'success',
+      error_message: errorMessage
+    });
+    await log.save();
+  } catch (error) {
+    console.error('Erro ao salvar log de sincronização:', error.message);
+  }
+}
+
+// Rotas da API
+app.get('/', (req, res) => {
+  res.json({
+    message: 'API de Sincronização Tiny ERP',
+    endpoints: {
+      '/products': 'GET - Listar todos os produtos',
+      '/products/:id': 'GET - Buscar produto específico',
+      '/sync': 'POST - Executar sincronização manual',
+      '/sync/logs': 'GET - Ver logs de sincronização',
+      '/sync/status': 'GET - Status da última sincronização'
+    }
+  });
+});
+
+// Listar todos os produtos
+app.get('/products', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const products = await Product.find()
+      .sort({ sync_date: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Product.countDocuments();
+
+    res.json({
+      products,
+      pagination: {
+        current_page: page,
+        total_pages: Math.ceil(total / limit),
+        total_products: total,
+        per_page: limit
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.get('/api/produtos/:id', async (req, res) => {
+// Buscar produto específico
+app.get('/products/:id', async (req, res) => {
   try {
-    const product = await Product.findOne({ tinyId: req.params.id });
-
+    const product = await Product.findOne({ id: req.params.id });
     if (!product) {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    res.json({
-      retorno: {
-        status: 'OK',
-        produto: product
-      }
+// Sincronização manual
+app.post('/sync', async (req, res) => {
+  try {
+    res.json({ message: 'Sincronização iniciada', status: 'processing' });
+
+    // Executar sincronização em background
+    syncProducts().catch(error => {
+      console.error('Erro na sincronização manual:', error.message);
+      saveSyncLog(0, 0, error.message);
     });
 
   } catch (error) {
@@ -343,81 +482,141 @@ app.get('/api/produtos/:id', async (req, res) => {
   }
 });
 
-// Rotas de controle da sincronização
-app.post('/api/sync/start', async (req, res) => {
-  if (tinySync.isRunning) {
-    return res.status(400).json({ error: 'Sincronização já está rodando' });
+// Ver logs de sincronização
+app.get('/sync/logs', async (req, res) => {
+  try {
+    const logs = await SyncLog.find()
+      .sort({ date: -1 })
+      .limit(10);
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-
-  // Iniciar sincronização em background
-  tinySync.syncAllProducts().catch(console.error);
-
-  res.json({ message: 'Sincronização iniciada' });
 });
 
-app.get('/api/sync/status', async (req, res) => {
-  const lastLog = await SyncLog.findOne().sort({ createdAt: -1 });
+// Status da última sincronização
+app.get('/sync/status', async (req, res) => {
+  try {
+    const lastSync = await SyncLog.findOne().sort({ date: -1 });
+    const totalProducts = await Product.countDocuments();
 
-  res.json({
-    isRunning: tinySync.isRunning,
-    lastSync: lastLog,
-    totalProducts: await Product.countDocuments()
-  });
-});
-
-app.get('/api/sync/logs', async (req, res) => {
-  const logs = await SyncLog.find().sort({ createdAt: -1 }).limit(10);
-  res.json({ logs });
-});
-
-// Estatísticas
-app.get('/api/stats', async (req, res) => {
-  const stats = await Product.aggregate([
-    {
-      $group: {
-        _id: null,
-        total: { $sum: 1 },
-        comImagem: { $sum: { $cond: [{ $gt: [{ $size: "$anexos" }, 0] }, 1, 0] } },
-        promocoes: { $sum: { $cond: [{ $gt: ["$preco_promocional", 0] }, 1, 0] } },
-        precoMedio: { $avg: "$preco" }
+    res.json({
+      last_sync: lastSync,
+      total_products_in_db: totalProducts,
+      mongodb_connected: mongoose.connection.readyState === 1,
+      environment: {
+        sync_on_start: process.env.SYNC_ON_START,
+        node_env: process.env.NODE_ENV,
+        port: process.env.PORT
       }
-    }
-  ]);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
+// Novo endpoint para testar conexão com Tiny
+app.get('/debug/test-tiny', async (req, res) => {
+  try {
+    console.log('🧪 Testando conexão com API do Tiny...');
+
+    const response = await tinyApiRequest('/api2/produtos.pesquisa.php', { pagina: 1 });
+
+    res.json({
+      success: true,
+      message: 'Conexão com Tiny API estabelecida',
+      status: response.retorno.status,
+      total_pages: response.retorno.numero_paginas || 0,
+      sample_response: response
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: {
+        stack: error.stack,
+        response_data: error.response?.data || null,
+        response_status: error.response?.status || null
+      }
+    });
+  }
+});
+
+// Endpoint para verificar variáveis de ambiente
+app.get('/debug/env', (req, res) => {
   res.json({
-    stats: stats[0] || {},
-    lastSync: await SyncLog.findOne().sort({ createdAt: -1 })
+    port: process.env.PORT,
+    node_env: process.env.NODE_ENV,
+    sync_on_start: process.env.SYNC_ON_START,
+    has_mongodb_uri: !!process.env.MONGODB_URI,
+    has_tiny_token: !!process.env.TINY_TOKEN,
+    mongodb_connection_state: mongoose.connection.readyState,
+    mongodb_states: {
+      0: 'disconnected',
+      1: 'connected',
+      2: 'connecting',
+      3: 'disconnecting'
+    }
   });
 });
 
-// Conectar ao MongoDB
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => {
+// Endpoint para verificar status do rate limiter
+app.get('/debug/rate-limiter', (req, res) => {
+  const stats = tinyRateLimiter.getStats();
+  const now = Date.now();
+  const recentRequests = tinyRateLimiter.requests.filter(time => now - time < 60000);
+
+  res.json({
+    ...stats,
+    recent_requests_timeline: recentRequests.map(time => ({
+      timestamp: time,
+      seconds_ago: Math.floor((now - time) / 1000),
+      datetime: new Date(time).toLocaleString('pt-BR')
+    })),
+    next_window_reset_in_seconds: recentRequests.length > 0 ?
+      Math.ceil((60000 - (now - Math.min(...recentRequests))) / 1000) : 0,
+    is_rate_limited: recentRequests.length >= 25
+  });
+});
+
+// Configurar cron job para sincronização automática
+// Executar todos os dias às 02:00
+cron.schedule('0 2 * * *', () => {
+  console.log('Executando sincronização automática...');
+  syncProducts().catch(error => {
+    console.error('Erro na sincronização automática:', error.message);
+    saveSyncLog(0, 0, error.message);
+  });
+});
+
+// Inicializar servidor
+app.listen(PORT, async () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Sincronização automática configurada para todos os dias às 02:00`);
+  console.log(`SYNC_ON_START está definido como: ${process.env.SYNC_ON_START}`);
+
+  // Aguardar conexão com MongoDB antes de sincronizar
+  mongoose.connection.once('open', () => {
     console.log('✅ Conectado ao MongoDB');
 
-    // Iniciar servidor
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`📡 API disponível em http://localhost:${PORT}`);
-    });
-
-    // Agendar sincronização diária às 02:00
-    cron.schedule('0 2 * * *', () => {
-      console.log('⏰ Iniciando sincronização agendada...');
-      tinySync.syncAllProducts().catch(console.error);
-    });
-
-    // Sincronização rápida a cada 4 horas
-    cron.schedule('0 */4 * * *', () => {
-      console.log('⏰ Iniciando sincronização rápida...');
-      tinySync.quickSync().catch(console.error);
-    });
-
-  })
-  .catch(err => {
-    console.error('❌ Erro ao conectar MongoDB:', err);
-    process.exit(1);
+    // Executar sincronização inicial (opcional)
+    if (process.env.SYNC_ON_START === 'true') {
+      console.log('🔄 Iniciando sincronização automática...');
+      setTimeout(async () => {
+        try {
+          await syncProducts();
+          console.log('✅ Sincronização inicial concluída com sucesso');
+        } catch (error) {
+          console.error('❌ Erro na sincronização inicial:', error.message);
+          console.error('Stack trace:', error.stack);
+        }
+      }, 3000); // Reduzido para 3 segundos
+    }
   });
+
+  mongoose.connection.on('error', (error) => {
+    console.error('❌ Erro de conexão MongoDB:', error.message);
+  });
+});
+
+module.exports = app;
