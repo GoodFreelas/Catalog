@@ -1,209 +1,149 @@
-import React, { useState } from 'react';
-import {
-  ShoppingCart,
-  Menu,
-  X,
-  Search,
-  User,
-  Heart,
-  Phone,
-  Mail,
-  MapPin
-} from 'lucide-react';
-import { Button } from '../atoms/Button';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, Menu, X, Store } from "lucide-react";
+import Button from "../atoms/Button";
+import Badge from "../atoms/Badge";
+import { useCart } from "../../contexts/CartContext";
 
-export const Header = ({
-  onCartClick,
-  cartItemsCount = 0,
-  onSearchClick,
-  onUserClick,
-  onFavoritesClick,
-  className = ''
-}) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const Header = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { itemCount } = useCart();
+  const navigate = useNavigate();
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
 
-  const navigationItems = [
-    { label: 'Produtos', href: '#produtos', active: true },
-    { label: 'Categorias', href: '#categorias' },
-    { label: 'Promoções', href: '#promocoes' },
-    { label: 'Sobre', href: '#sobre' },
-    { label: 'Contato', href: '#contato' }
-  ];
+  const handleCartClick = () => {
+    navigate("/carrinho");
+    setIsMenuOpen(false);
+  };
 
   return (
-    <header className={`bg-white shadow-sm border-b sticky top-0 z-40 ${className}`}>
-      {/* Top Bar - Contact Info */}
-      <div className="bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-10 text-sm">
-            <div className="hidden md:flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4" />
-                <span>(51) 99999-9999</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4" />
-                <span>contato@lojavonixx.com.br</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4" />
-                <span>Porto Alegre, RS</span>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <span className="text-xs">Frete grátis acima de R$ 150,00</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="container-custom">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg mr-2 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">V</span>
-                </div>
-                Loja Vonixx
-              </h1>
-            </div>
-          </div>
+          <Link
+            to="/"
+            className="flex items-center gap-2 font-bold text-xl text-primary-600 hover:text-primary-700 transition-colors"
+          >
+            <Store className="h-8 w-8" />
+            <span className="hidden sm:block">E-commerce</span>
+          </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            {navigationItems.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`transition-colors ${item.active
-                    ? 'text-blue-600 font-medium'
-                    : 'text-gray-700 hover:text-blue-600'
-                  }`}
-              >
-                {item.label}
-              </a>
-            ))}
+          {/* Menu Desktop */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link
+              to="/"
+              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Início
+            </Link>
+            <Link
+              to="/produtos"
+              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Produtos
+            </Link>
+            <Link
+              to="/categorias"
+              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Categorias
+            </Link>
+            <Link
+              to="/contato"
+              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Contato
+            </Link>
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-3">
-            {/* Search Button - Mobile */}
+          {/* Carrinho e Menu Mobile */}
+          <div className="flex items-center gap-3">
+            {/* Botão do Carrinho */}
             <Button
-              variant="secondary"
-              size="sm"
-              onClick={onSearchClick}
-              className="md:hidden"
+              variant="ghost"
+              onClick={handleCartClick}
+              className="relative p-2"
             >
-              <Search className="w-5 h-5" />
-            </Button>
-
-            {/* Favorites */}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onFavoritesClick}
-              className="hidden sm:flex relative"
-            >
-              <Heart className="w-5 h-5" />
-            </Button>
-
-            {/* User Account */}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onUserClick}
-              className="hidden sm:flex"
-            >
-              <User className="w-5 h-5" />
-            </Button>
-
-            {/* Cart */}
-            <Button
-              variant="secondary"
-              onClick={onCartClick}
-              className="relative"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[1.25rem] h-5 flex items-center justify-center px-1">
-                  {cartItemsCount > 99 ? '99+' : cartItemsCount}
-                </span>
+              <ShoppingCart className="h-6 w-6" />
+              {itemCount > 0 && (
+                <Badge
+                  variant="danger"
+                  size="small"
+                  className="absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center text-xs"
+                >
+                  {itemCount > 99 ? "99+" : itemCount}
+                </Badge>
               )}
-              <span className="hidden sm:inline ml-2">
-                Carrinho {cartItemsCount > 0 && `(${cartItemsCount})`}
-              </span>
             </Button>
 
-            {/* Mobile Menu Button */}
+            {/* Menu Mobile Toggle */}
             <Button
-              variant="secondary"
-              size="sm"
-              onClick={toggleMobileMenu}
-              className="md:hidden"
+              variant="ghost"
+              onClick={toggleMenu}
+              className="md:hidden p-2"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5" />
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
               ) : (
-                <Menu className="w-5 h-5" />
+                <Menu className="h-6 w-6" />
               )}
             </Button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t bg-white">
-          <div className="px-4 py-2 space-y-1">
-            {navigationItems.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`block px-3 py-2 rounded-md text-base transition-colors ${item.active
-                    ? 'text-blue-600 bg-blue-50 font-medium'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                  }`}
-                onClick={() => setIsMobileMenuOpen(false)}
+        {/* Menu Mobile */}
+        {isMenuOpen && (
+          <div className="md:hidden border-t bg-white">
+            <nav className="py-4 space-y-2">
+              <Link
+                to="/"
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-primary-600 font-medium transition-colors rounded-lg"
               >
-                {item.label}
-              </a>
-            ))}
+                Início
+              </Link>
+              <Link
+                to="/produtos"
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-primary-600 font-medium transition-colors rounded-lg"
+              >
+                Produtos
+              </Link>
+              <Link
+                to="/categorias"
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-primary-600 font-medium transition-colors rounded-lg"
+              >
+                Categorias
+              </Link>
+              <Link
+                to="/contato"
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-primary-600 font-medium transition-colors rounded-lg"
+              >
+                Contato
+              </Link>
 
-            {/* Mobile-only actions */}
-            <div className="border-t pt-2 mt-2 space-y-1">
-              <button
-                onClick={() => {
-                  onFavoritesClick?.();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex items-center w-full px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
-              >
-                <Heart className="w-5 h-5 mr-3" />
-                Favoritos
-              </button>
-
-              <button
-                onClick={() => {
-                  onUserClick?.();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex items-center w-full px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
-              >
-                <User className="w-5 h-5 mr-3" />
-                Minha Conta
-              </button>
-            </div>
+              {/* Carrinho no menu mobile */}
+              <div className="px-4 pt-2 border-t">
+                <Button
+                  onClick={handleCartClick}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Carrinho ({itemCount})
+                </Button>
+              </div>
+            </nav>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </header>
   );
 };
+
+export default Header;

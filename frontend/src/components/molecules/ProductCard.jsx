@@ -1,297 +1,135 @@
-import React, { useState, useEffect } from "react";
-import { Heart, Star, ShoppingCart, Eye, Package } from "lucide-react";
-import { Button } from "../atoms/Button";
-import { Badge } from "../atoms/Badge";
-import { TinyAPI } from "../../services/TinyAPI";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { ShoppingCart, Eye } from "lucide-react";
+import Button from "../atoms/Button";
+import Badge from "../atoms/Badge";
+import { useCart } from "../../contexts/CartContext";
 
-export const ProductCard = ({
-  product,
-  onAddToCart,
-  onViewDetails,
-  onToggleFavorite,
-  isFavorite = false,
-  showRating = true,
-  className = "",
-}) => {
+const ProductCard = ({ product }) => {
+  const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [productDetails, setProductDetails] = useState(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
+  const { addItem } = useCart();
 
-  const price =
-    product.preco_promocional > 0 ? product.preco_promocional : product.preco;
   const hasPromotion = product.preco_promocional > 0;
+  const finalPrice = hasPromotion ? product.preco_promocional : product.preco;
   const discount = hasPromotion
     ? Math.round(
         ((product.preco - product.preco_promocional) / product.preco) * 100
       )
     : 0;
 
-  // Carregar detalhes do produto (incluindo imagem) quando o componente é montado
-  useEffect(() => {
-    const loadProductDetails = async () => {
-      // Se já tem anexos, não precisa buscar detalhes
-      if (product.anexos && product.anexos.length > 0) {
-        setProductDetails(product);
-        return;
-      }
-
-      try {
-        setLoadingDetails(true);
-        console.log(`🔍 Carregando detalhes para produto ID: ${product.id}`);
-
-        const response = await TinyAPI.fetchProductDetails(product.id);
-        if (response?.retorno?.produto) {
-          setProductDetails(response.retorno.produto);
-          console.log(
-            `✅ Detalhes carregados para: ${response.retorno.produto.nome}`
-          );
-          console.log(
-            `📸 Anexos encontrados:`,
-            response.retorno.produto.anexos
-          );
-        }
-      } catch (error) {
-        console.error(
-          `❌ Erro ao carregar detalhes do produto ${product.id}:`,
-          error
-        );
-      } finally {
-        setLoadingDetails(false);
-      }
-    };
-
-    loadProductDetails();
-  }, [product.id]);
-
-  // Função para obter URL da imagem
-  const getImageUrl = () => {
-    const detailsToUse = productDetails || product;
-
-    // Verificar se tem anexos
-    if (
-      detailsToUse.anexos &&
-      Array.isArray(detailsToUse.anexos) &&
-      detailsToUse.anexos.length > 0
-    ) {
-      const primeiroAnexo = detailsToUse.anexos[0];
-      if (
-        primeiroAnexo &&
-        primeiroAnexo.anexo &&
-        primeiroAnexo.anexo.trim() !== ""
-      ) {
-        return primeiroAnexo.anexo;
-      }
-    }
-
-    // Fallback para placeholder
-    const productName = product.nome.substring(0, 15).replace(/[^\w\s]/g, "");
-    return `https://via.placeholder.com/300x300/f8fafc/64748b?text=${encodeURIComponent(
-      productName
-    )}`;
-  };
-
-  const handleAddToCart = async () => {
-    setIsLoading(true);
-    try {
-      // Usar os detalhes completos se disponíveis
-      const productToAdd = productDetails || product;
-      await onAddToCart(productToAdd);
-    } catch (error) {
-      console.error("Erro ao adicionar ao carrinho:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleViewDetails = () => {
-    if (onViewDetails) {
-      onViewDetails(product.id);
-    }
-  };
-
-  const handleToggleFavorite = () => {
-    if (onToggleFavorite) {
-      onToggleFavorite(product.id);
-    }
-  };
-
-  const handleImageError = (event) => {
-    const imgSrc = event.target.src;
-    console.log(`❌ Erro ao carregar imagem: ${imgSrc}`);
-    setImageError(true);
-    setImageLoaded(true);
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(product);
   };
 
   const handleImageLoad = () => {
-    setImageLoaded(true);
+    setImageLoading(false);
   };
 
-  // Determinar se ainda está carregando imagem
-  const isLoadingImage = loadingDetails || (!imageLoaded && !imageError);
+  const handleImageError = () => {
+    setImageLoading(false);
+    setImageError(true);
+  };
 
   return (
-    <div
-      className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden group ${className}`}
-    >
-      {/* Image Container */}
-      <div className="relative aspect-square bg-gray-100">
-        {isLoadingImage && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        )}
+    <div className="card group overflow-hidden hover:scale-105 transition-transform duration-200">
+      <Link to={`/produto/${product.tinyId}`} className="block">
+        {/* Imagem do produto */}
+        <div className="relative aspect-square overflow-hidden bg-gray-100">
+          {imageLoading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="loading-spinner h-8 w-8"></div>
+            </div>
+          )}
 
-        {!imageError ? (
-          <img
-            src={getImageUrl()}
-            alt={product.nome}
-            className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
-              imageLoaded ? "opacity-100" : "opacity-0"
-            }`}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500">
-            <Package className="w-16 h-16 mb-3 text-gray-400" />
-            <div className="text-center px-4">
-              <div className="font-medium text-sm text-gray-600 mb-1">
-                {product.nome.length > 30
-                  ? product.nome.substring(0, 30) + "..."
-                  : product.nome}
-              </div>
-              <div className="text-xs text-gray-500">Vonixx</div>
+          {!imageError && product.anexos?.[0]?.anexo ? (
+            <img
+              src={product.anexos[0].anexo}
+              alt={product.nome}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                imageLoading ? "opacity-0" : "opacity-100"
+              }`}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+              <span className="text-gray-400 text-sm">Sem imagem</span>
+            </div>
+          )}
+
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {hasPromotion && (
+              <Badge variant="danger" size="small">
+                -{discount}%
+              </Badge>
+            )}
+            {product.categoria && (
+              <Badge variant="primary" size="small">
+                {product.categoria}
+              </Badge>
+            )}
+          </div>
+
+          {/* Overlay com ações */}
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <div className="flex gap-2">
+              <Button
+                size="small"
+                variant="ghost"
+                className="bg-white text-gray-800 hover:bg-gray-100"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-4 w-4" />
+              </Button>
+              <Button
+                size="small"
+                variant="ghost"
+                className="bg-white text-gray-800 hover:bg-gray-100"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        )}
-
-        {/* Badges */}
-        <div className="absolute top-2 left-2 space-y-1">
-          {hasPromotion && (
-            <Badge variant="danger" size="sm">
-              -{discount}%
-            </Badge>
-          )}
-          {product.situacao === "A" && (
-            <Badge variant="success" size="sm">
-              Disponível
-            </Badge>
-          )}
         </div>
 
-        {/* Favorite Button */}
-        <button
-          className={`absolute top-2 right-2 p-2 rounded-full shadow-md transition-colors ${
-            isFavorite
-              ? "bg-red-500 text-white hover:bg-red-600"
-              : "bg-white text-gray-600 hover:bg-gray-50"
-          }`}
-          onClick={handleToggleFavorite}
-        >
-          <Heart className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`} />
-        </button>
+        {/* Informações do produto */}
+        <div className="p-4">
+          <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 group-hover:text-primary-600 transition-colors">
+            {product.nome}
+          </h3>
 
-        {/* Quick Actions Overlay */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleViewDetails}
-              className="bg-white"
-            >
-              <Eye className="w-4 h-4 mr-1" />
-              Ver
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleAddToCart}
-              disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <ShoppingCart className="w-4 h-4 mr-1" />
-              {isLoading ? "Add..." : "Add"}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        {/* Product Name */}
-        <h3
-          className="font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]"
-          title={product.nome}
-        >
-          {product.nome}
-        </h3>
-
-        {/* Product Code */}
-        {product.codigo && (
-          <p className="text-xs text-gray-500 mb-2">Cód: {product.codigo}</p>
-        )}
-
-        {/* Rating */}
-        {showRating && (
-          <div className="flex items-center mb-2">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className="w-4 h-4 text-yellow-400 fill-current"
-                />
-              ))}
-            </div>
-            <span className="text-sm text-gray-500 ml-2">(0 avaliações)</span>
-          </div>
-        )}
-
-        {/* Price Section */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex flex-col">
+          {/* Preços */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg font-semibold text-green-600">
+              R$ {finalPrice.toFixed(2).replace(".", ",")}
+            </span>
             {hasPromotion && (
               <span className="text-sm text-gray-500 line-through">
-                R$ {product.preco.toFixed(2)}
+                R$ {product.preco.toFixed(2).replace(".", ",")}
               </span>
             )}
-            <span
-              className={`font-bold text-lg ${
-                hasPromotion ? "text-red-600" : "text-gray-900"
-              }`}
-            >
-              R$ {price.toFixed(2)}
-            </span>
           </div>
-          <Badge variant="info" size="sm">
-            {product.unidade || "un"}
-          </Badge>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleViewDetails}
-            className="flex-1"
-          >
-            <Eye className="w-4 h-4 mr-1" />
-            Detalhes
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleAddToCart}
-            disabled={isLoading}
-            className="flex-1"
-          >
-            <ShoppingCart className="w-4 h-4 mr-1" />
-            {isLoading ? "Adicionando..." : "Adicionar"}
-          </Button>
+          {/* Marca */}
+          {product.marca && (
+            <p className="text-sm text-gray-600 mb-3">Marca: {product.marca}</p>
+          )}
         </div>
+      </Link>
+
+      {/* Botão adicionar ao carrinho */}
+      <div className="px-4 pb-4">
+        <Button onClick={handleAddToCart} className="w-full" size="small">
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          Adicionar ao Carrinho
+        </Button>
       </div>
     </div>
   );
 };
+
+export default ProductCard;
