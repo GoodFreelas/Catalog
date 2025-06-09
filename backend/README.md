@@ -1,297 +1,705 @@
-# API de Sincronização Tiny ERP
+# 🔄 Tiny ERP Sync API
 
-Este projeto é uma API Express.js que sincroniza produtos da API do Tiny ERP com um banco de dados MongoDB, incluindo anexos e imagens dos produtos.
+API moderna e robusta para sincronização de produtos do Tiny ERP com MongoDB, incluindo rate limiting inteligente, logs detalhados e arquitetura modular.
 
-## Funcionalidades
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-6%2B-green)](https://www.mongodb.com/)
+[![Express](https://img.shields.io/badge/Express-4.18-blue)](https://expressjs.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-- ✅ Sincronização completa de produtos do Tiny ERP
-- ✅ **Rate Limiter inteligente (25 req/min)** - Respeita limites da API
-- ✅ Armazenamento em MongoDB online
-- ✅ Sincronização automática diária (configurável)
-- ✅ API REST para consulta dos produtos
-- ✅ Sistema de logs de sincronização
-- ✅ Paginação para listagem de produtos
-- ✅ Busca por produto específico
-- ✅ Download e armazenamento de anexos/imagens
-- ✅ Monitoramento em tempo real do rate limiter
+## 📋 Índice
 
-## Instalação
+- [Funcionalidades](#-funcionalidades)
+- [Instalação Rápida](#-instalação-rápida)
+- [Configuração](#-configuração)
+- [Documentação da API](#-documentação-da-api)
+- [Arquitetura](#-arquitetura)
+- [Rate Limiter](#-rate-limiter)
+- [Logs e Monitoramento](#-logs-e-monitoramento)
+- [Deploy](#-deploy)
+- [Troubleshooting](#-troubleshooting)
 
-### 1. Clone o repositório
+## ✨ Funcionalidades
+
+### 🎯 **Core Features**
+
+- ✅ **Sincronização completa** de produtos do Tiny ERP
+- ✅ **Rate Limiter inteligente** (25 req/min) - Respeita limites da API
+- ✅ **Armazenamento MongoDB** com schema otimizado
+- ✅ **Sincronização automática** diária configurável
+- ✅ **API REST completa** para consulta dos produtos
+
+### 🔧 **Funcionalidades Avançadas**
+
+- ✅ **Arquitetura modular** para fácil manutenção
+- ✅ **Sistema de logs** coloridos e estruturados
+- ✅ **Monitoramento em tempo real** do rate limiter
+- ✅ **Health checks** e diagnósticos
+- ✅ **Tratamento robusto de erros**
+- ✅ **Filtros e busca avançada** de produtos
+- ✅ **Estatísticas detalhadas** de sincronização
+- ✅ **Docker support** para deploy fácil
+
+## 🚀 Instalação Rápida
+
+### **Pré-requisitos**
+
+- Node.js 18+
+- MongoDB (local ou Atlas)
+- Token da API Tiny ERP
+
+### **1. Clone e instale**
 
 ```bash
 git clone <seu-repositorio>
 cd tiny-erp-sync-api
-```
-
-### 2. Instale as dependências
-
-```bash
 npm install
 ```
 
-### 3. Configure as variáveis de ambiente
+### **2. Configure variáveis de ambiente**
 
 ```bash
 cp .env.example .env
+# Edite o .env com suas configurações
 ```
 
-Edite o arquivo `.env` com suas configurações:
+### **3. Execute o debug para testar**
+
+```bash
+npm run debug
+```
+
+### **4. Inicie o servidor**
+
+```bash
+npm start
+# ou para desenvolvimento
+npm run dev
+```
+
+## ⚙️ Configuração
+
+### **Variáveis de Ambiente (.env)**
 
 ```env
+# Servidor
 PORT=3000
-MONGODB_URI=sua_string_de_conexao_mongodb
-TINY_TOKEN=seu_token_da_api_tiny
-SYNC_ON_START=false
+NODE_ENV=production
+
+# MongoDB
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/tiny_products
+
+# API Tiny ERP
+TINY_TOKEN=seu_token_aqui
+
+# Rate Limiter (Opcional)
+TINY_RATE_LIMIT_REQUESTS=25     # Max requisições por minuto
+TINY_RATE_LIMIT_WINDOW=60000    # Janela em milissegundos
+
+# Sincronização (Opcional)
+SYNC_ON_START=false             # Sincronizar ao iniciar
+
+# Logs (Opcional)
+LOG_LEVEL=INFO                  # DEBUG, INFO, WARN, ERROR
+LOG_COLORS=true                 # Cores nos logs
 ```
 
-### 4. Execute o projeto
-
-```bash
-# Desenvolvimento
-npm run dev
-
-# Produção
-npm start
-```
-
-## Configuração do MongoDB
-
-### MongoDB Atlas (Recomendado)
+### **MongoDB Atlas Setup**
 
 1. Acesse [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Crie uma conta gratuita
-3. Crie um cluster
-4. Configure o acesso de rede (IP whitelist)
-5. Crie um usuário de banco de dados
-6. Copie a string de conexão e coloque no `.env`
+2. Crie cluster gratuito
+3. Configure IP whitelist
+4. Crie usuário de banco
+5. Copie string de conexão para `MONGODB_URI`
 
-Exemplo de string de conexão:
+## 📚 Documentação da API
+
+### **🏠 Base URL**
 
 ```
-mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/tiny_products?retryWrites=true&w=majority
+http://localhost:3000
 ```
 
-## API Endpoints
+---
 
-### Produtos
+## 📦 **Produtos**
 
-- `GET /` - Informações da API
-- `GET /products` - Listar produtos (com paginação)
-- `GET /products/:id` - Buscar produto específico
+### **GET /products**
 
-### Sincronização
+Lista produtos com paginação e filtros avançados.
 
-- `POST /sync` - Executar sincronização manual
-- `GET /sync/logs` - Ver logs de sincronização
-- `GET /sync/status` - Status da última sincronização
+**Query Parameters:**
 
-### Debug e Monitoramento
+- `page` (number): Página atual (padrão: 1)
+- `limit` (number): Itens por página (padrão: 10, máx: 100)
+- `search` (string): Busca em nome, código e descrição
+- `situacao` (string): Filtro por situação (A=Ativo, I=Inativo)
+- `categoria` (string): Filtro por categoria
+- `preco_min` (number): Preço mínimo
+- `preco_max` (number): Preço máximo
+- `sort` (string): Campo para ordenação
+- `order` (string): Direção (asc/desc)
 
-- `GET /debug/env` - Verificar variáveis de ambiente
-- `GET /debug/test-tiny` - Testar conexão com API do Tiny
-- `GET /debug/rate-limiter` - Status do rate limiter em tempo real
-
-### Exemplos de Uso
-
-#### Listar produtos com paginação
+**Exemplo:**
 
 ```bash
-GET /products?page=1&limit=10
+GET /products?page=1&limit=20&search=notebook&situacao=A&sort=preco&order=desc
 ```
 
-Resposta:
+**Resposta:**
 
 ```json
 {
-  "products": [...],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 50,
-    "total_products": 500,
-    "per_page": 10
+  "success": true,
+  "data": {
+    "products": [...],
+    "pagination": {
+      "current_page": 1,
+      "total_pages": 50,
+      "total_products": 1000,
+      "per_page": 20,
+      "has_next": true,
+      "has_prev": false
+    },
+    "filters_applied": {...},
+    "stats": {
+      "total_products": 1000,
+      "active_products": 850,
+      "products_with_images": 750
+    }
   }
 }
 ```
 
-#### Buscar produto específico
+### **GET /products/:id**
+
+Busca produto específico por ID.
+
+**Exemplo:**
 
 ```bash
 GET /products/704435766
 ```
 
-#### Monitorar rate limiter
-
-```bash
-GET /debug/rate-limiter
-```
-
-Resposta:
+**Resposta:**
 
 ```json
 {
-  "total_requests": 45,
-  "requests_in_current_window": 12,
-  "max_requests_per_window": 25,
-  "available_slots": 13,
-  "next_window_reset_in_seconds": 35,
-  "is_rate_limited": false,
-  "recent_requests_timeline": [...]
+  "success": true,
+  "data": {
+    "product": {
+      "id": "704435766",
+      "nome": "Aplicador De Pneu Pretinho",
+      "preco": 10,
+      "anexos": [
+        {"anexo": "https://s3.amazonaws.com/..."}
+      ],
+      ...
+    },
+    "metadata": {
+      "is_active": true,
+      "has_images": true,
+      "main_image": "https://s3.amazonaws.com/...",
+      "days_since_sync": 2
+    }
+  }
 }
 ```
 
-## Sincronização Automática
+### **GET /products/search/text**
 
-Por padrão, a sincronização está configurada para executar **todos os dias às 02:00**.
+Busca textual avançada em produtos.
 
-Para alterar o horário, modifique a linha no arquivo `server.js`:
+**Query Parameters:**
 
-```javascript
-// Executar todos os dias às 02:00
-cron.schedule("0 2 * * *", () => {
-  // código da sincronização
-});
+- `q` (string, obrigatório): Termo de busca
+- `limit` (number): Limite de resultados (padrão: 10)
+
+### **GET /products/stats/general**
+
+Estatísticas gerais dos produtos.
+
+### **GET /products/categories**
+
+Lista todas as categorias disponíveis.
+
+### **GET /products/category/:category**
+
+Lista produtos de uma categoria específica.
+
+---
+
+## 🔄 **Sincronização**
+
+### **POST /sync**
+
+Executa sincronização manual.
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "message": "Sincronização iniciada",
+  "status": "processing",
+  "timestamp": "2025-06-08T10:30:00.000Z"
+}
 ```
 
-### Formatos de Cron
+### **GET /sync/status**
 
-- `0 2 * * *` - Todo dia às 02:00
-- `0 */6 * * *` - A cada 6 horas
-- `0 8 * * 1` - Toda segunda-feira às 08:00
-- `0 0 1 * *` - Todo dia 1º do mês à meia-noite
+Status completo do sistema e sincronização.
 
-### ⏱️ **Tempo de Sincronização**
+**Resposta:**
 
-Com rate limiter de 25 req/min:
+```json
+{
+  "success": true,
+  "data": {
+    "system_status": {
+      "mongodb_connected": true,
+      "total_products_in_db": 1000,
+      "active_products": 850,
+      "uptime_seconds": 3600
+    },
+    "sync_status": {
+      "is_running": false,
+      "current_stats": {...},
+      "last_sync": {...}
+    },
+    "sync_statistics": {
+      "total_syncs": 25,
+      "successful_syncs": 23,
+      "avg_duration": 120.5
+    },
+    "environment": {
+      "sync_on_start": "false",
+      "node_env": "production"
+    }
+  }
+}
+```
+
+### **GET /sync/logs**
+
+Histórico de logs de sincronização.
+
+**Query Parameters:**
+
+- `page`, `limit`: Paginação
+- `status`: Filtro por status (success/error/partial)
+- `sync_type`: Filtro por tipo (manual/automatic/startup)
+- `date_from`, `date_to`: Filtro por período
+- `include_details`: Incluir detalhes completos (true/false)
+
+### **GET /sync/logs/errors**
+
+Logs apenas de sincronizações com erro.
+
+### **GET /sync/stats**
+
+Estatísticas detalhadas de sincronização.
+
+### **GET /sync/progress**
+
+Progresso da sincronização atual em tempo real.
+
+### **POST /sync/cancel**
+
+Tentar cancelar sincronização em execução.
+
+---
+
+## 🛠️ **Debug & Monitoramento**
+
+### **GET /debug/health**
+
+Health check completo do sistema.
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "uptime": 3600,
+    "memory": {...},
+    "mongodb": {
+      "status": "connected",
+      "host": "cluster0.mongodb.net"
+    },
+    "tiny_api": {
+      "status": "ok"
+    }
+  }
+}
+```
+
+### **GET /debug/env**
+
+Verificar configurações (sem expor dados sensíveis).
+
+### **GET /debug/test-tiny**
+
+Testar conexão com API do Tiny.
+
+### **GET /debug/rate-limiter**
+
+Status detalhado do rate limiter.
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "current_stats": {
+      "total_requests": 150,
+      "requests_in_current_window": 12,
+      "max_requests_per_window": 25,
+      "available_slots": 13,
+      "is_rate_limited": false
+    },
+    "timeline": [...],
+    "next_window_reset": {
+      "in_seconds": 45,
+      "timestamp": "2025-06-08T10:31:00.000Z"
+    }
+  }
+}
+```
+
+### **POST /debug/rate-limiter/reset**
+
+Reset manual do rate limiter.
+
+### **GET /debug/logs/level**
+
+Verificar nível de log atual.
+
+### **POST /debug/logs/level**
+
+Alterar nível de log dinamicamente.
+
+### **GET /debug/memory**
+
+Informações detalhadas de uso de memória.
+
+---
+
+## 🏗️ Arquitetura
+
+### **📁 Estrutura do Projeto**
+
+```
+tiny-erp-sync-api/
+├── src/
+│   ├── config/          # Configurações
+│   │   ├── database.js  # MongoDB
+│   │   └── tiny.js      # API Tiny
+│   ├── models/          # Schemas MongoDB
+│   │   ├── Product.js
+│   │   └── SyncLog.js
+│   ├── services/        # Lógica de negócio
+│   │   ├── tinyService.js
+│   │   ├── syncService.js
+│   │   └── rateLimiter.js
+│   ├── routes/          # Rotas da API
+│   │   ├── products.js
+│   │   ├── sync.js
+│   │   └── debug.js
+│   ├── middlewares/     # Middlewares
+│   │   └── errorHandler.js
+│   └── utils/           # Utilitários
+│       └── logger.js
+├── scripts/             # Scripts utilitários
+│   └── debug.js
+├── server.js           # Servidor principal
+└── package.json
+```
+
+### **🔄 Fluxo de Sincronização**
+
+1. **Teste de Conectividade**: Verifica API Tiny e MongoDB
+2. **Busca Paginada**: Lista todos os produtos (respeitando rate limit)
+3. **Detalhes por Produto**: Busca informações completas de cada item
+4. **Persistência**: Salva/atualiza no MongoDB
+5. **Logs**: Registra estatísticas e erros
+6. **Rate Limiting**: Controla requisições automaticamente
+
+---
+
+## 🚦 Rate Limiter
+
+### **Configuração Inteligente**
+
+- **Limite padrão**: 25 requisições por minuto
+- **Janela deslizante**: 60 segundos
+- **Buffer de segurança**: +1 segundo extra
+- **Recuperação automática**: de erros HTTP 429
+
+### **Monitoramento em Tempo Real**
+
+```bash
+# Ver status atual
+GET /debug/rate-limiter
+
+# Timeline das últimas requisições
+# Tempo para reset da janela
+# Slots disponíveis
+```
+
+### **Logs Durante Sincronização**
+
+```
+🌐 Requisição 15 - (15/25 na janela atual)
+⏱️ Rate limit atingido. Aguardando 45s...
+📊 Rate Limiter: 20/25 requisições na janela atual
+```
+
+### **Estimativa de Tempo**
 
 - **100 produtos**: ~8 minutos
 - **500 produtos**: ~40 minutos
 - **1000 produtos**: ~80 minutos
 
-_Nota: Cada produto requer 2 requisições (lista + detalhes)_
+_Cada produto = 2 requisições (lista + detalhes)_
 
-## Estrutura do Banco de Dados
+---
 
-### Collection: products
+## 📊 Logs e Monitoramento
 
-```javascript
-{
-  id: String,           // ID único do Tiny
-  nome: String,         // Nome do produto
-  codigo: String,       // Código do produto
-  preco: Number,        // Preço
-  descricao_complementar: String,
-  anexos: [{            // URLs dos anexos/imagens
-    anexo: String
-  }],
-  // ... outros campos do Tiny ERP
-  sync_date: Date,      // Data da última sincronização
-  last_updated: Date    // Data da última atualização
-}
-```
-
-### Collection: synclogs
+### **Sistema de Logs Avançado**
 
 ```javascript
+// Níveis disponíveis
+DEBUG; // Muito verboso - desenvolvimento
+INFO; // Informações gerais - padrão
+WARN; // Avisos e problemas menores
+ERROR; // Apenas erros críticos
+```
+
+### **Logs Coloridos**
+
+- 🟦 **INFO**: Informações gerais
+- 🟨 **WARN**: Avisos importantes
+- 🟥 **ERROR**: Erros críticos
+- 🟦 **DEBUG**: Detalhes técnicos
+
+### **Alterar Nível Dinamicamente**
+
+```bash
+# Via API
+POST /debug/logs/level
 {
-  date: Date,           // Data da sincronização
-  products_processed: Number,  // Quantidade de produtos processados
-  duration_seconds: Number,    // Duração em segundos
-  status: String,       // 'success' ou 'error'
-  error_message: String // Mensagem de erro (se houver)
+  "level": "DEBUG"
 }
+
+# Via variável de ambiente
+LOG_LEVEL=DEBUG npm start
 ```
 
-## Monitoramento e Logs
+### **Monitoramento de Performance**
 
-### Ver status da sincronização
+- Memory usage tracking
+- Request timing
+- Rate limiter metrics
+- Sync performance stats
+- Error rate monitoring
 
-```bash
-GET /sync/status
-```
+---
 
-### Ver histórico de sincronizações
+## 🚀 Deploy
 
-```bash
-GET /sync/logs
-```
-
-### Logs no console
-
-O sistema registra logs detalhados no console, incluindo:
-
-- Início e fim de sincronização
-- Progresso da sincronização
-- Produtos processados
-- Erros encontrados
-
-## Tratamento de Erros
-
-O sistema inclui tratamento robusto de erros:
-
-- Rate limiting entre requisições
-- Retry automático em caso de falha
-- Logs detalhados de erros
-- Continuidade da sincronização mesmo com falhas pontuais
-
-## Considerações de Performance
-
-- **Rate Limiting**: Delay de 500ms-1000ms entre requisições para evitar sobrecarga da API do Tiny
-- **Paginação**: Busca produtos em páginas para otimizar memória
-- **Background Processing**: Sincronização executada em background
-- **Indexação**: Campos importantes indexados no MongoDB
-
-## Deploy
-
-### Heroku
-
-1. Instale o Heroku CLI
-2. Configure as variáveis de ambiente no Heroku
-3. Faça o deploy
+### **Heroku**
 
 ```bash
-heroku create sua-app
-heroku config:set MONGODB_URI=sua_string_conexao
+# 1. Instalar Heroku CLI
+# 2. Login e criar app
+heroku create sua-app-name
+
+# 3. Configurar variáveis
+heroku config:set MONGODB_URI=sua_uri
 heroku config:set TINY_TOKEN=seu_token
+heroku config:set NODE_ENV=production
+
+# 4. Deploy
 git push heroku main
 ```
 
-### Outras Plataformas
+### **Railway**
 
-O projeto é compatível com:
+```bash
+# 1. Instalar Railway CLI
+npm install -g @railway/cli
 
-- Vercel
-- Railway
-- DigitalOcean App Platform
-- AWS Elastic Beanstalk
+# 2. Login e deploy
+railway login
+railway new
+railway add
+railway deploy
+```
 
-## Segurança
+### **Docker**
 
-- ✅ Token da API armazenado em variáveis de ambiente
-- ✅ Validação de dados de entrada
-- ✅ CORS configurado
-- ✅ Rate limiting implementado
-- ⚠️ Para produção, considere adicionar autenticação JWT
+```bash
+# Build
+docker build -t tiny-sync-api .
 
-## Contribuição
+# Run
+docker run -p 3000:3000 \
+  -e MONGODB_URI=sua_uri \
+  -e TINY_TOKEN=seu_token \
+  tiny-sync-api
+```
+
+### **Docker Compose**
+
+```bash
+# Com MongoDB local
+docker-compose up -d
+```
+
+### **DigitalOcean App Platform**
+
+1. Conecte repositório GitHub
+2. Configure variáveis de ambiente
+3. Deploy automático
+
+---
+
+## 🔧 Troubleshooting
+
+### **Problemas Comuns**
+
+#### **🔴 Erro: "TINY_TOKEN não definido"**
+
+```bash
+# Solução: Configure o token no .env
+TINY_TOKEN=seu_token_aqui
+```
+
+#### **🔴 Erro: "MongoDB connection failed"**
+
+```bash
+# Verifique a string de conexão
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/db
+
+# Teste conexão
+npm run debug
+```
+
+#### **🔴 Rate limit atingido muito rápido**
+
+```bash
+# Ajuste configurações
+TINY_RATE_LIMIT_REQUESTS=20  # Reduzir para 20 req/min
+TINY_RATE_LIMIT_WINDOW=60000
+```
+
+#### **🔴 Sincronização não inicia**
+
+```bash
+# Verifique logs
+npm run debug
+
+# Force sincronização
+curl -X POST http://localhost:3000/sync
+```
+
+#### **🔴 Produtos não aparecem**
+
+```bash
+# Verifique status
+GET /sync/status
+
+# Veja logs de erro
+GET /sync/logs/errors
+```
+
+### **Debug Detalhado**
+
+```bash
+# Script completo de diagnóstico
+npm run debug
+
+# Testa:
+# ✅ Variáveis de ambiente
+# ✅ Conexão MongoDB
+# ✅ API Tiny
+# ✅ Rate limiter
+# ✅ Performance
+```
+
+### **Logs Úteis**
+
+```bash
+# Alterar para debug
+POST /debug/logs/level {"level": "DEBUG"}
+
+# Ver health check
+GET /debug/health
+
+# Monitorar rate limiter
+GET /debug/rate-limiter
+```
+
+### **Performance Issues**
+
+- Reduzir `TINY_RATE_LIMIT_REQUESTS` se API retorna 429
+- Aumentar timeout do MongoDB se conexão lenta
+- Usar índices MongoDB para consultas otimizadas
+- Monitorar memória com `GET /debug/memory`
+
+---
+
+## 📝 Scripts Disponíveis
+
+```bash
+npm start        # Produção
+npm run dev      # Desenvolvimento (nodemon)
+npm run debug    # Script diagnóstico completo
+npm test         # Testes (se configurado)
+```
+
+---
+
+## 🤝 Contribuição
 
 1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request
+2. Crie branch para feature (`git checkout -b feature/nova-funcionalidade`)
+3. Commit changes (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para branch (`git push origin feature/nova-funcionalidade`)
+5. Abra Pull Request
 
-## Licença
+---
 
-MIT License - veja o arquivo LICENSE para detalhes.
+## 📄 Licença
 
-## Suporte
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
 
-Para dúvidas ou problemas:
+---
 
-1. Verifique os logs da aplicação
-2. Consulte a documentação da API do Tiny ERP
-3. Abra uma issue no repositório
+## 🆘 Suporte
+
+- 📧 **Email**: seu-email@exemplo.com
+- 💬 **Issues**: [GitHub Issues](https://github.com/usuario/repo/issues)
+- 📖 **Docs**: Esta documentação
+- 🐛 **Bugs**: Use `npm run debug` primeiro
+
+---
+
+## 🎯 Roadmap
+
+- [ ] **Webhook support** para sincronização em tempo real
+- [ ] **Dashboard web** para monitoramento
+- [ ] **Sync incremental** apenas produtos alterados
+- [ ] **Multi-tenant** support
+- [ ] **API rate limiting** por cliente
+- [ ] **Backup automático** dos dados
+- [ ] **Notificações** via email/Slack
+- [ ] **Métricas avançadas** com Prometheus
 
 ---
 
