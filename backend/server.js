@@ -18,23 +18,59 @@ const debugRoutes = require('./src/routes/debug');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS configurado ANTES de todos os middlewares
+app.use(cors({
+  origin: [
+    'http://localhost:5173',              // Vite dev
+    'http://localhost:3000',              // React dev local
+    'https://catalog-eight-indol.vercel.app', // Seu frontend em produção
+    'https://catalog-eight-indol.vercel.app/', // Com barra final (caso necessário)
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Para suportar browsers legados
+}));
+
+// Middleware para logs de CORS (opcional - para debug)
+app.use((req, res, next) => {
+  logger.debug(`CORS: ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'undefined'}`);
+  next();
+});
+
 // Middlewares globais
-app.use(cors());
 app.use(express.json());
 
 // Conectar ao MongoDB
 connectDB();
 
-// Rotas
+// Health check específico para CORS
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    cors: 'enabled',
+    origin: req.get('Origin') || 'no-origin'
+  });
+});
+
+// Rota principal
 app.get('/', (req, res) => {
   res.json({
     message: 'API de Sincronização Tiny ERP',
     version: '1.0.0',
     status: 'online',
+    cors_enabled: true,
+    allowed_origins: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://catalog-eight-indol.vercel.app'
+    ],
     endpoints: {
       '/products': 'Gestão de produtos',
       '/sync': 'Sincronização',
-      '/debug': 'Debug e diagnósticos'
+      '/debug': 'Debug e diagnósticos',
+      '/health': 'Health check com info CORS'
     },
     documentation: 'https://github.com/seu-usuario/tiny-erp-sync-api#readme'
   });
@@ -63,6 +99,7 @@ cron.schedule('0 2 * * *', () => {
 // Inicializar servidor
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+  logger.info(`🌐 CORS habilitado para: localhost:5173, localhost:3000, catalog-eight-indol.vercel.app`);
   logger.info(`📅 Sincronização automática configurada para todos os dias às 02:00`);
   logger.info(`🔧 SYNC_ON_START: ${process.env.SYNC_ON_START}`);
 
