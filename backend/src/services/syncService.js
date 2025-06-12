@@ -1,7 +1,7 @@
 const { tinyApiClient } = require('./tinyService');
 const Product = require('../models/Product');
 const { saveSyncLog } = require('../models/SyncLog');
-const { logger } = require('../utils/logger'); // Corrigido: destructuring do logger
+const { logger } = require('../utils/logger');
 
 /**
  * Serviço de sincronização de produtos
