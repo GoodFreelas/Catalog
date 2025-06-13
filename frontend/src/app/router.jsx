@@ -4,14 +4,6 @@ import { Loader2 } from "lucide-react";
 
 // Lazy loading das páginas
 const CatalogPage = lazy(() => import("../features/catalog/pages/CatalogPage"));
-const ProductDetailPage = lazy(() =>
-  import("../features/catalog/pages/ProductDetailPage")
-);
-const SearchPage = lazy(() =>
-  import("../features/search/pages/SearchPage.jsx")
-);
-const CartPage = lazy(() => import("../features/cart/pages/CartPage.jsx"));
-
 // Componente de loading
 const PageLoader = () => (
   <div className="min-h-[400px] flex items-center justify-center">
@@ -52,15 +44,6 @@ const AppRouter = () => {
 
         {/* Catálogo de produtos */}
         <Route path="/catalog" element={<CatalogPage />} />
-
-        {/* Detalhes do produto */}
-        <Route path="/product/:id" element={<ProductDetailPage />} />
-
-        {/* Página de busca */}
-        <Route path="/search" element={<SearchPage />} />
-
-        {/* Página do carrinho */}
-        <Route path="/cart" element={<CartPage />} />
 
         {/* Página não encontrada */}
         <Route path="*" element={<NotFoundPage />} />

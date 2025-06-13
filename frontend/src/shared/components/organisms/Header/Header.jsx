@@ -49,6 +49,10 @@ const Header = ({ onSearch, onFilterToggle }) => {
     setMobileMenuOpen(false);
   };
 
+  const handleSearch = (searchTerm) => {
+    onSearch?.(searchTerm);
+  };
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
@@ -85,9 +89,10 @@ const Header = ({ onSearch, onFilterToggle }) => {
             {/* Barra de busca - Desktop */}
             <div className="hidden md:block flex-1 max-w-lg mx-8">
               <SearchBar
-                onSearch={onSearch}
+                onSearch={handleSearch}
                 onFilterToggle={onFilterToggle}
                 placeholder="Buscar produtos..."
+                showSuggestions={true}
               />
             </div>
 
@@ -134,9 +139,10 @@ const Header = ({ onSearch, onFilterToggle }) => {
           {/* Barra de busca - Mobile (sempre visível) */}
           <div className="md:hidden pb-4">
             <SearchBar
-              onSearch={onSearch}
+              onSearch={handleSearch}
               onFilterToggle={onFilterToggle}
               placeholder="Buscar produtos..."
+              showSuggestions={true}
             />
           </div>
         </div>

@@ -25,7 +25,13 @@ export const useUIStore = create((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
 
   // Ações de busca
-  setSearchTerm: (term) => set({ searchTerm: term }),
+  setSearchTerm: (term) => {
+    // Evitar loop ao verificar se o valor é diferente
+    const currentTerm = get().searchTerm;
+    if (currentTerm !== term) {
+      set({ searchTerm: term });
+    }
+  },
   clearSearch: () => set({ searchTerm: '' }),
 
   // Ações de filtros
@@ -45,7 +51,7 @@ export const useUIStore = create((set, get) => ({
     })),
 
   clearFilters: () =>
-    set((state) => ({
+    set({
       filters: {
         category: '',
         priceRange: { min: null, max: null },
@@ -53,7 +59,7 @@ export const useUIStore = create((set, get) => ({
         sort: 'nome',
         order: 'asc',
       }
-    })),
+    }),
 
   // Ações de modais
   openModal: (modalName, data = {}) =>

@@ -12,18 +12,28 @@ export const formatCurrency = (value, options = {}) => {
     maximumFractionDigits = 2,
   } = options;
 
-  const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-
-  if (isNaN(numericValue)) {
+  // Verificações mais rigorosas
+  if (value === null || value === undefined || value === '') {
     return 'R$ 0,00';
   }
 
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits,
-    maximumFractionDigits,
-  }).format(numericValue);
+  const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+
+  if (isNaN(numericValue) || numericValue < 0) {
+    return 'R$ 0,00';
+  }
+
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits,
+      maximumFractionDigits,
+    }).format(numericValue);
+  } catch (error) {
+    console.error('Erro ao formatar moeda:', error, 'Valor:', value);
+    return `R$ ${numericValue.toFixed(2).replace('.', ',')}`;
+  }
 };
 
 /**

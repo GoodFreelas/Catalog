@@ -42,6 +42,18 @@ const ProductCard = ({
   const hasImage = product.anexos && product.anexos.length > 0;
   const imageUrl = hasImage ? product.anexos[0].anexo : null;
 
+  // Debug temporário - remova depois
+  if (import.meta.env.DEV) {
+    console.log("Product data:", {
+      id: product.id,
+      nome: product.nome,
+      preco: product.preco,
+      preco_promocional: product.preco_promocional,
+      precoType: typeof product.preco,
+      precoPromocionalType: typeof product.preco_promocional,
+    });
+  }
+
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
@@ -163,22 +175,17 @@ const ProductCard = ({
         {/* Preço */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            {/* Preço principal */}
             <span className="text-lg font-bold text-primary-600">
-              {formatCurrency(product.preco)}
-            </span>
-
-            {product.preco_promocional &&
-              parseFloat(product.preco_promocional) <
-                parseFloat(product.preco) && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-secondary-500 line-through">
-                    {formatCurrency(product.preco)}
-                  </span>
-                  <span className="text-xs bg-error-100 text-error-600 px-1.5 py-0.5 rounded">
-                    PROMOÇÃO
-                  </span>
-                </div>
+              {formatCurrency(
+                product.preco_promocional &&
+                  parseFloat(product.preco_promocional || 0) > 0 &&
+                  parseFloat(product.preco_promocional) <
+                    parseFloat(product.preco || 0)
+                  ? product.preco_promocional
+                  : product.preco
               )}
+            </span>{" "}
           </div>
         </div>
 

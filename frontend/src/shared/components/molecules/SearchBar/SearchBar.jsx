@@ -1,68 +1,201 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, X, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
 import Button from "../../atoms/Button/Button";
+import SearchSuggestions from "../../../../features/search/components/SearchSuggestions/SearchSuggestions";
 import { useUIStore } from "../../../../core/stores/uiStore";
 import { useDebounce } from "../../../../core/hooks/useDebounce";
+import { useSearchSuggestions } from "../../../../features/search/hooks/useSearch";
 
 const SearchBar = ({
+  value = "",
   onSearch,
   onFilterToggle,
   placeholder = "Buscar produtos...",
   showFilters = true,
+  showSuggestions = true,
+  autoFocus = false,
   className,
   ...props
 }) => {
-  const {
-    searchTerm,
-    setSearchTerm,
-    clearSearch,
-    hasActiveFilters,
-    getActiveFiltersCount,
-  } = useUIStore();
+  const { hasActiveFilters, getActiveFiltersCount } = useUIStore();
 
-  const [localValue, setLocalValue] = useState(searchTerm);
+  const [localValue, setLocalValue] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
+  const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
+  const [searchHistory, setSearchHistory] = useState([]);
 
-  // Debounce da busca para evitar muitas requisições
-  const debouncedSearchTerm = useDebounce(localValue, 300);
+  const inputRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // Atualiza o termo de busca global quando o debounced value muda
+  // Debounce apenas do valor local - sem circular dependency
+  const debouncedValue = useDebounce(localValue, 300);
+
+  // Hook para buscar sugestões
+  const { data: suggestionsData, isLoading: suggestionsLoading } =
+    useSearchSuggestions(localValue, {
+      enabled:
+        showSuggestions && localValue.length > 0 && localValue.length < 4,
+    });
+
+  const suggestions = suggestionsData?.suggestions || [];
+
+  // Carregar histórico do localStorage apenas uma vez
   useEffect(() => {
-    if (debouncedSearchTerm !== searchTerm) {
-      setSearchTerm(debouncedSearchTerm);
-      onSearch?.(debouncedSearchTerm);
+    try {
+      const saved = localStorage.getItem("search-history");
+      if (saved) {
+        setSearchHistory(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar histórico:", error);
     }
-  }, [debouncedSearchTerm, searchTerm, setSearchTerm, onSearch]);
+  }, []);
 
-  // Sincroniza valor local com o store
+  // Atualizar valor local quando prop value mudar
   useEffect(() => {
-    setLocalValue(searchTerm);
-  }, [searchTerm]);
+    if (value !== localValue) {
+      setLocalValue(value);
+    }
+  }, [value]); // Removido localValue da dependência para evitar loop
+
+  // Chamar onSearch quando debouncedValue mudar
+  useEffect(() => {
+    if (debouncedValue !== value) {
+      onSearch?.(debouncedValue);
+    }
+  }, [debouncedValue, onSearch]); // Removido value da dependência
+
+  // Auto focus
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
+
+  // Fechar sugestões quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setShowSuggestionsDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleInputChange = (e) => {
-    setLocalValue(e.target.value);
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+
+    // Mostrar sugestões quando começar a digitar
+    if (newValue.length > 0 && showSuggestions) {
+      setShowSuggestionsDropdown(true);
+    } else {
+      setShowSuggestionsDropdown(false);
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    // Mostrar histórico/sugestões ao focar se tiver conteúdo
+    if (
+      (localValue.length > 0 || searchHistory.length > 0) &&
+      showSuggestions
+    ) {
+      setShowSuggestionsDropdown(true);
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    // Delay para permitir cliques nas sugestões
+    setTimeout(() => {
+      setShowSuggestionsDropdown(false);
+    }, 200);
   };
 
   const handleClear = () => {
     setLocalValue("");
-    clearSearch();
     onSearch?.("");
+    setShowSuggestionsDropdown(false);
+    inputRef.current?.focus();
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setSearchTerm(localValue);
     onSearch?.(localValue);
+    setShowSuggestionsDropdown(false);
+    inputRef.current?.blur();
+
+    // Adicionar ao histórico
+    if (localValue.trim().length >= 2) {
+      addToHistory(localValue.trim());
+    }
+  };
+
+  const handleSuggestionClick = (suggestionText) => {
+    setLocalValue(suggestionText);
+    onSearch?.(suggestionText);
+    setShowSuggestionsDropdown(false);
+    addToHistory(suggestionText);
+  };
+
+  const handleHistoryClick = (historyQuery) => {
+    setLocalValue(historyQuery);
+    onSearch?.(historyQuery);
+    setShowSuggestionsDropdown(false);
+  };
+
+  const addToHistory = (searchTerm) => {
+    if (!searchTerm || searchTerm.length < 2) return;
+
+    const newItem = {
+      id: Date.now(),
+      query: searchTerm,
+      timestamp: new Date().toISOString(),
+    };
+
+    setSearchHistory((prev) => {
+      const filtered = prev.filter(
+        (item) => item.query.toLowerCase() !== searchTerm.toLowerCase()
+      );
+      const updated = [newItem, ...filtered].slice(0, 10);
+
+      localStorage.setItem("search-history", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem("search-history");
+  };
+
+  const removeFromHistory = (id) => {
+    setSearchHistory((prev) => {
+      const filtered = prev.filter((item) => item.id !== id);
+      localStorage.setItem("search-history", JSON.stringify(filtered));
+      return filtered;
+    });
   };
 
   const activeFiltersCount = getActiveFiltersCount();
   const hasFilters = hasActiveFilters();
 
+  const shouldShowSuggestions =
+    showSuggestionsDropdown &&
+    showSuggestions &&
+    (suggestions.length > 0 || searchHistory.length > 0 || suggestionsLoading);
+
   return (
-    <div className={clsx("relative", className)} {...props}>
+    <div className={clsx("relative", className)} ref={containerRef} {...props}>
       <form onSubmit={handleSubmit} className="relative">
         {/* Container principal */}
         <div
@@ -88,11 +221,12 @@ const SearchBar = ({
 
           {/* Input de busca */}
           <input
+            ref={inputRef}
             type="text"
             value={localValue}
             onChange={handleInputChange}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             placeholder={placeholder}
             className={clsx(
               "w-full pl-10 pr-20 py-3 text-sm",
@@ -159,9 +293,24 @@ const SearchBar = ({
         </div>
       </form>
 
+      {/* Dropdown de sugestões */}
+      {shouldShowSuggestions && (
+        <SearchSuggestions
+          suggestions={suggestions}
+          searchHistory={searchHistory}
+          isLoading={suggestionsLoading}
+          query={localValue}
+          onSuggestionClick={handleSuggestionClick}
+          onHistoryClick={handleHistoryClick}
+          onRemoveFromHistory={removeFromHistory}
+          onClearHistory={clearHistory}
+          show={shouldShowSuggestions}
+        />
+      )}
+
       {/* Indicador de busca ativa */}
       <AnimatePresence>
-        {searchTerm && (
+        {debouncedValue && !showSuggestionsDropdown && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -172,7 +321,7 @@ const SearchBar = ({
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-primary-600" />
                 <span className="text-sm text-primary-700">
-                  Buscando por: <strong>"{searchTerm}"</strong>
+                  Buscando por: <strong>"{debouncedValue}"</strong>
                 </span>
               </div>
 

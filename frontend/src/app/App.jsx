@@ -1,4 +1,4 @@
-import { BrowserRouter, HashRouter } from "react-router-dom";
+import { HashRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { Toaster } from "react-hot-toast";
@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast";
 import AppRouter from "./router";
 import Header from "../shared/components/organisms/Header/Header";
 import CartDrawer from "../features/cart/components/CartDrawer/CartDrawer";
+import ProductModal from "../features/catalog/components/ProductModal/ProductModal";
 import { useUIStore } from "../core/stores/uiStore";
 
 // Configuração do React Query
@@ -26,15 +27,14 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { searchTerm, setSearchTerm } = useUIStore();
+  const { searchTerm, setSearchTerm, openModal } = useUIStore();
 
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
 
   const handleFilterToggle = () => {
-    // Implementar abertura do modal de filtros
-    console.log("Toggle filters");
+    openModal("filters");
   };
 
   return (
@@ -49,8 +49,9 @@ function App() {
             <AppRouter />
           </main>
 
-          {/* Carrinho lateral */}
+          {/* Componentes globais */}
           <CartDrawer />
+          <ProductModal />
 
           {/* Toast notifications */}
           <Toaster
