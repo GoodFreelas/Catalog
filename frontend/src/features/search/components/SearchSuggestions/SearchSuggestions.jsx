@@ -1,4 +1,4 @@
-import { Search, TrendingUp, Clock, X } from "lucide-react";
+import { Search, TrendingUp, Clock, X, Package, Tag, Hash } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
@@ -24,11 +24,74 @@ const SearchSuggestions = ({
   }
 
   const handleSuggestionClick = (suggestion) => {
-    onSuggestionClick?.(suggestion.text);
+    onSuggestionClick?.(suggestion);
   };
 
   const handleHistoryClick = (historyItem) => {
     onHistoryClick?.(historyItem.query);
+  };
+
+  // Agrupar sugestões por tipo
+  const groupedSuggestions = {
+    products: suggestions.filter((s) => s.type === "product"),
+    categories: suggestions.filter((s) => s.type === "category"),
+    keywords: suggestions.filter((s) => s.type === "keyword"),
+  };
+
+  const getSuggestionIcon = (suggestion) => {
+    switch (suggestion.type) {
+      case "product":
+        return <Search className="w-4 h-4" />;
+      case "category":
+        return <Package className="w-4 h-4" />;
+      case "keyword":
+        return <Tag className="w-4 h-4" />;
+      default:
+        return <Search className="w-4 h-4" />;
+    }
+  };
+
+  const getSuggestionTypeLabel = (type) => {
+    switch (type) {
+      case "product":
+        return "Produto";
+      case "category":
+        return "Categoria";
+      case "keyword":
+        return "Tag";
+      default:
+        return "";
+    }
+  };
+
+  const getSuggestionTypeColor = (type) => {
+    switch (type) {
+      case "product":
+        return "text-blue-600 bg-blue-50 border-blue-200";
+      case "category":
+        return "text-green-600 bg-green-50 border-green-200";
+      case "keyword":
+        return "text-purple-600 bg-purple-50 border-purple-200";
+      default:
+        return "text-secondary-600 bg-secondary-50 border-secondary-200";
+    }
+  };
+
+  const highlightMatch = (text, query) => {
+    if (!query || query.length < 2) return text;
+
+    const regex = new RegExp(`(${query})`, "gi");
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <strong key={index} className="font-semibold text-primary-600">
+          {part}
+        </strong>
+      ) : (
+        part
+      )
+    );
   };
 
   return (
@@ -51,40 +114,112 @@ const SearchSuggestions = ({
             <div className="p-4">
               <div className="flex items-center gap-3 text-secondary-600">
                 <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-                <span className="text-sm">Buscando...</span>
+                <span className="text-sm">Buscando sugestões...</span>
               </div>
             </div>
           )}
 
-          {/* Sugestões baseadas na query atual */}
+          {/* Sugestões agrupadas por tipo */}
           {!isLoading && suggestions.length > 0 && (
             <div className="border-b border-secondary-100">
               <div className="p-3 bg-secondary-50">
                 <h4 className="text-xs font-medium text-secondary-700 uppercase tracking-wide">
-                  Sugestões
+                  Sugestões para "{query}"
                 </h4>
               </div>
 
               <div className="py-2">
-                {suggestions.map((suggestion, index) => (
+                {/* Produtos */}
+                {groupedSuggestions.products.map((suggestion, index) => (
                   <button
                     key={suggestion.id || index}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-secondary-50 transition-colors group"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-secondary-50 transition-colors group"
                   >
-                    <Search className="w-4 h-4 text-secondary-400 group-hover:text-primary-600 transition-colors" />
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                      {getSuggestionIcon(suggestion)}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm text-secondary-900 truncate">
+                          {highlightMatch(suggestion.text, query)}
+                        </span>
+                        <span
+                          className={clsx(
+                            "text-xs px-1.5 py-0.5 rounded border text-blue-600 bg-blue-50 border-blue-200"
+                          )}
+                        >
+                          Produto
+                        </span>
+                      </div>
+                      {suggestion.category && (
+                        <div className="flex items-center gap-1">
+                          <Package className="w-3 h-3 text-secondary-400" />
+                          <span className="text-xs text-secondary-500">
+                            {suggestion.category}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <TrendingUp className="w-3 h-3 text-secondary-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+
+                {/* Categorias */}
+                {groupedSuggestions.categories.map((suggestion, index) => (
+                  <button
+                    key={suggestion.id || index}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-secondary-50 transition-colors group"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-50 text-green-600 group-hover:bg-green-100 transition-colors">
+                      {getSuggestionIcon(suggestion)}
+                    </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-secondary-900 truncate">
-                          {suggestion.text}
+                          {highlightMatch(suggestion.text, query)}
                         </span>
+                        <span
+                          className={clsx(
+                            "text-xs px-1.5 py-0.5 rounded border text-green-600 bg-green-50 border-green-200"
+                          )}
+                        >
+                          Categoria
+                        </span>
+                      </div>
+                    </div>
 
-                        {suggestion.category && (
-                          <span className="text-xs text-secondary-500 bg-secondary-100 px-2 py-0.5 rounded-full">
-                            {suggestion.category}
-                          </span>
-                        )}
+                    <TrendingUp className="w-3 h-3 text-secondary-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+
+                {/* Keywords */}
+                {groupedSuggestions.keywords.map((suggestion, index) => (
+                  <button
+                    key={suggestion.id || index}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-secondary-50 transition-colors group"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-100 transition-colors">
+                      {getSuggestionIcon(suggestion)}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-secondary-900 truncate">
+                          {highlightMatch(suggestion.text, query)}
+                        </span>
+                        <span
+                          className={clsx(
+                            "text-xs px-1.5 py-0.5 rounded border text-purple-600 bg-purple-50 border-purple-200"
+                          )}
+                        >
+                          Tag
+                        </span>
                       </div>
                     </div>
 
@@ -123,7 +258,9 @@ const SearchSuggestions = ({
                       onClick={() => handleHistoryClick(historyItem)}
                       className="flex-1 flex items-center gap-3 px-4 py-2 text-left"
                     >
-                      <Clock className="w-4 h-4 text-secondary-400 group-hover:text-primary-600 transition-colors" />
+                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary-100 text-secondary-600 group-hover:bg-secondary-200 transition-colors">
+                        <Clock className="w-4 h-4" />
+                      </div>
 
                       <div className="flex-1 min-w-0">
                         <span className="text-sm text-secondary-900 truncate block">
@@ -155,6 +292,9 @@ const SearchSuggestions = ({
               <Search className="w-8 h-8 text-secondary-300 mx-auto mb-2" />
               <p className="text-sm text-secondary-600">
                 Nenhuma sugestão encontrada
+              </p>
+              <p className="text-xs text-secondary-500 mt-1">
+                Tente termos diferentes ou verifique a ortografia
               </p>
             </div>
           )}

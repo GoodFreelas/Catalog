@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Filter } from "lucide-react";
+import { Search, X, Filter, Tag, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
 import Button from "../../atoms/Button/Button";
+import SearchSuggestions from "../../../../features/search/components/SearchSuggestions/SearchSuggestions";
 import { useUIStore } from "../../../../core/stores/uiStore";
 import { useDebounce } from "../../../../core/hooks/useDebounce";
+import { useProducts } from "../../../../features/catalog/hooks/useProducts";
 
 const SearchBar = ({
   value = "",
@@ -14,21 +16,44 @@ const SearchBar = ({
   placeholder = "Buscar produtos...",
   showFilters = true,
   autoFocus = false,
-  showSuggestions, // Capturar para não passar para o DOM
+  showSuggestions = true,
   className,
   ...props
 }) => {
-  const { searchTerm, setSearchTerm, hasActiveFilters, getActiveFiltersCount } =
-    useUIStore();
+  const {
+    searchTerm,
+    setSearchTerm,
+    hasActiveFilters,
+    getActiveFiltersCount,
+    searchHistory = [], // Valor padrão
+    addToSearchHistory = () => {}, // Função padrão
+    removeFromSearchHistory = () => {}, // Função padrão
+    clearSearchHistory = () => {}, // Função padrão
+  } = useUIStore();
 
   const [localValue, setLocalValue] = useState(value || searchTerm);
   const [isFocused, setIsFocused] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
 
   const inputRef = useRef(null);
 
-  // Debounce para busca automática
-  const debouncedValue = useDebounce(localValue, 500);
+  // Debounce para busca automática e sugestões
+  const debouncedValue = useDebounce(localValue, 300);
+  const debouncedSearchValue = useDebounce(localValue, 500);
+
+  // Query para buscar sugestões
+  const { data: suggestionsData } = useProducts({
+    params: {
+      search: debouncedValue,
+      limit: 5,
+      suggest_only: true,
+    },
+    enabled: showSuggestions && debouncedValue.length >= 2,
+    staleTime: 30 * 1000, // 30 segundos
+  });
 
   // Inicializar apenas uma vez
   useEffect(() => {
@@ -47,22 +72,110 @@ const SearchBar = ({
 
   // Sincronizar com store apenas quando necessário
   useEffect(() => {
-    if (isInitialized && debouncedValue !== searchTerm) {
-      setSearchTerm(debouncedValue);
-      onSearch?.(debouncedValue);
-    }
-  }, [debouncedValue, isInitialized]); // ✅ Removido searchTerm e setSearchTerm das deps
+    if (isInitialized && debouncedSearchValue !== searchTerm) {
+      setSearchTerm(debouncedSearchValue);
+      onSearch?.(debouncedSearchValue);
 
-  // Sincronizar apenas mudanças externas (não iniciadas pelo próprio componente)
+      // Adicionar ao histórico se não estiver vazio e a função existir
+      if (debouncedSearchValue.trim().length > 0 && addToSearchHistory) {
+        addToSearchHistory(debouncedSearchValue.trim());
+      }
+    }
+  }, [debouncedSearchValue, isInitialized]);
+
+  // Sincronizar apenas mudanças externas
   useEffect(() => {
     if (
       isInitialized &&
       searchTerm !== localValue &&
-      searchTerm !== debouncedValue
+      searchTerm !== debouncedSearchValue
     ) {
       setLocalValue(searchTerm);
     }
-  }, [searchTerm, isInitialized]); // ✅ Removido localValue das deps
+  }, [searchTerm, isInitialized]);
+
+  // Gerar sugestões baseadas nos produtos encontrados
+  useEffect(() => {
+    if (suggestionsData?.data?.products && debouncedValue.length >= 2) {
+      setSuggestionsLoading(false);
+
+      const products = suggestionsData.data.products;
+      const newSuggestions = [];
+      const seen = new Set();
+
+      // Adicionar produtos que fazem match
+      products.slice(0, 3).forEach((product) => {
+        if (!seen.has(product.nome.toLowerCase())) {
+          newSuggestions.push({
+            id: `product-${product.id}`,
+            text: product.nome,
+            type: "product",
+            category: product.categoria,
+            product: product,
+          });
+          seen.add(product.nome.toLowerCase());
+        }
+      });
+
+      // Extrair categorias únicas
+      const categories = [
+        ...new Set(products.map((p) => p.categoria).filter(Boolean)),
+      ];
+      categories.slice(0, 2).forEach((categoria) => {
+        if (!seen.has(categoria.toLowerCase())) {
+          newSuggestions.push({
+            id: `category-${categoria}`,
+            text: categoria,
+            type: "category",
+            icon: Package,
+          });
+          seen.add(categoria.toLowerCase());
+        }
+      });
+
+      // Extrair keywords únicas
+      const keywords = new Set();
+      products.forEach((product) => {
+        if (product.seo_keywords) {
+          product.seo_keywords.split(",").forEach((keyword) => {
+            const cleanKeyword = keyword.trim().toLowerCase();
+            if (
+              cleanKeyword.length > 2 &&
+              cleanKeyword.includes(debouncedValue.toLowerCase()) &&
+              !seen.has(cleanKeyword)
+            ) {
+              keywords.add(keyword.trim());
+              seen.add(cleanKeyword);
+            }
+          });
+        }
+      });
+
+      // Adicionar keywords como sugestões
+      Array.from(keywords)
+        .slice(0, 2)
+        .forEach((keyword) => {
+          newSuggestions.push({
+            id: `keyword-${keyword}`,
+            text: keyword,
+            type: "keyword",
+            icon: Tag,
+          });
+        });
+
+      setSuggestions(newSuggestions);
+    } else if (debouncedValue.length < 2) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+    }
+  }, [suggestionsData, debouncedValue]);
+
+  // Controlar loading das sugestões
+  useEffect(() => {
+    if (debouncedValue.length >= 2 && showSuggestions) {
+      setSuggestionsLoading(true);
+    }
+  }, [debouncedValue, showSuggestions]);
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
@@ -71,25 +184,57 @@ const SearchBar = ({
 
   const handleFocus = () => {
     setIsFocused(true);
+    if (showSuggestions) {
+      setShowSuggestionsDropdown(true);
+    }
   };
 
   const handleBlur = () => {
     setIsFocused(false);
+    // Delay para permitir clicks nas sugestões
+    setTimeout(() => {
+      setShowSuggestionsDropdown(false);
+    }, 200);
   };
 
   const handleClear = () => {
     setLocalValue("");
     setSearchTerm("");
     onSearch?.("");
+    setSuggestions([]);
     inputRef.current?.focus();
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Força a busca imediatamente, sem esperar o debounce
+    // Força a busca imediatamente
     setSearchTerm(localValue);
     onSearch?.(localValue);
+
+    if (localValue.trim().length > 0 && addToSearchHistory) {
+      addToSearchHistory(localValue.trim());
+    }
+
+    setShowSuggestionsDropdown(false);
     inputRef.current?.blur();
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setLocalValue(suggestion.text);
+    setSearchTerm(suggestion.text);
+    onSearch?.(suggestion.text);
+    if (addToSearchHistory) {
+      addToSearchHistory(suggestion.text);
+    }
+    setShowSuggestionsDropdown(false);
+    inputRef.current?.blur();
+  };
+
+  const handleHistoryClick = (query) => {
+    setLocalValue(query);
+    setSearchTerm(query);
+    onSearch?.(query);
+    setShowSuggestionsDropdown(false);
   };
 
   // Filtrar props que não devem ir para o DOM
@@ -104,6 +249,12 @@ const SearchBar = ({
 
   const activeFiltersCount = getActiveFiltersCount();
   const hasFilters = hasActiveFilters();
+
+  const shouldShowSuggestions =
+    showSuggestionsDropdown &&
+    (suggestions.length > 0 ||
+      (searchHistory && searchHistory.length > 0) ||
+      suggestionsLoading);
 
   return (
     <div className={clsx("relative", className)} {...domProps}>
@@ -144,6 +295,7 @@ const SearchBar = ({
               "bg-transparent border-none outline-none",
               "placeholder-secondary-400 text-secondary-900"
             )}
+            autoComplete="off"
           />
 
           {/* Botões de ação */}
@@ -204,9 +356,24 @@ const SearchBar = ({
         </div>
       </form>
 
+      {/* Sugestões */}
+      {showSuggestions && (
+        <SearchSuggestions
+          suggestions={suggestions}
+          searchHistory={searchHistory}
+          isLoading={suggestionsLoading}
+          query={localValue}
+          show={shouldShowSuggestions}
+          onSuggestionClick={handleSuggestionClick}
+          onHistoryClick={handleHistoryClick}
+          onRemoveFromHistory={removeFromSearchHistory}
+          onClearHistory={clearSearchHistory}
+        />
+      )}
+
       {/* Indicador de busca ativa */}
       <AnimatePresence>
-        {searchTerm && (
+        {searchTerm && !showSuggestionsDropdown && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

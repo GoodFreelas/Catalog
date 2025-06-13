@@ -16,6 +16,7 @@ import {
   AlertCircle,
   X,
   ArrowRight,
+  Hash,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -99,9 +100,30 @@ const ProductDetailPage = () => {
     }
   };
 
+  // Processar descrição HTML
+  const getDescriptionText = (htmlDescription) => {
+    if (!htmlDescription) return null;
+
+    // Remove tags HTML e converte entidades
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = htmlDescription;
+    return tempDiv.textContent || tempDiv.innerText || "";
+  };
+
+  // Processar keywords
+  const getKeywords = (keywords) => {
+    if (!keywords) return [];
+    return keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+  };
+
   const images = product?.anexos || [];
   const hasImages = images.length > 0;
   const currentImage = hasImages ? images[selectedImageIndex]?.anexo : null;
+  const description = getDescriptionText(product?.descricao_complementar);
+  const keywords = getKeywords(product?.seo_keywords);
 
   // Estados de loading e erro
   if (isLoading) {
@@ -140,6 +162,7 @@ const ProductDetailPage = () => {
   const isActive = product.situacao === "A";
   const hasPromotion =
     product.preco_promocional &&
+    parseFloat(product.preco_promocional) > 0 &&
     parseFloat(product.preco_promocional) < parseFloat(product.preco);
 
   return (
@@ -189,7 +212,7 @@ const ProductDetailPage = () => {
         {/* Galeria de imagens */}
         <div className="space-y-4">
           {/* Imagem principal */}
-          <div className="relative aspect-square bg-secondary-50 rounded-xl overflow-hidden border border-secondary-200">
+          <div className="relative aspect-square bg-secondary-50 rounded-xl overflow-hidden border border-secondary-200 group">
             {hasImages && !imageError ? (
               <>
                 {imageLoading && (
@@ -280,20 +303,48 @@ const ProductDetailPage = () => {
               {product.nome}
             </h1>
 
-            {product.codigo && (
-              <p className="text-secondary-600 flex items-center gap-2">
-                <Tag className="w-4 h-4" />
-                Código: {product.codigo}
-              </p>
-            )}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-secondary-600">
+              {product.codigo && (
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  <span>Código: {product.codigo}</span>
+                </div>
+              )}
+
+              {product.gtin && (
+                <div className="flex items-center gap-2">
+                  <Hash className="w-4 h-4" />
+                  <span>GTIN: {product.gtin}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Descrição */}
-          {product.descricao && (
+          {description && (
             <div className="prose prose-sm max-w-none">
               <p className="text-secondary-700 leading-relaxed">
-                {product.descricao}
+                {description}
               </p>
+            </div>
+          )}
+
+          {/* Keywords/Tags */}
+          {keywords.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-secondary-700">
+                Tags:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {keywords.map((keyword, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 text-xs bg-primary-50 text-primary-700 rounded-full border border-primary-200"
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -306,14 +357,14 @@ const ProductDetailPage = () => {
                 )}
               </span>
 
-              {/* {hasPromotion && (
+              {hasPromotion && (
                 <span className="text-xl text-secondary-500 line-through">
                   {formatCurrency(product.preco)}
                 </span>
-              )} */}
+              )}
             </div>
 
-            {/* {hasPromotion && (
+            {hasPromotion && (
               <div className="flex items-center gap-2">
                 <span className="bg-error-100 text-error-600 text-sm font-medium px-3 py-1 rounded-full">
                   PROMOÇÃO
@@ -326,7 +377,7 @@ const ProductDetailPage = () => {
                   )}
                 </span>
               </div>
-            )} */}
+            )}
           </div>
 
           {/* Controles de quantidade */}
@@ -410,6 +461,22 @@ const ProductDetailPage = () => {
                   <Package className="w-4 h-4 text-secondary-500" />
                   <span className="text-secondary-600">Categoria:</span>
                   <span className="font-medium">{product.categoria}</span>
+                </div>
+              )}
+
+              {product.unidade && (
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-secondary-500" />
+                  <span className="text-secondary-600">Unidade:</span>
+                  <span className="font-medium">{product.unidade}</span>
+                </div>
+              )}
+
+              {product.marca && (
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-secondary-500" />
+                  <span className="text-secondary-600">Marca:</span>
+                  <span className="font-medium">{product.marca}</span>
                 </div>
               )}
 

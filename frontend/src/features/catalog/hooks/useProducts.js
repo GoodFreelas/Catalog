@@ -45,6 +45,28 @@ export const useProducts = (options = {}) => {
 };
 
 /**
+ * Hook para buscar sugestões de busca
+ * @param {string} query - Termo de busca
+ * @param {Object} options - Opções do hook
+ * @returns {Object} Dados e estado da consulta
+ */
+export const useProductSuggestions = (query, options = {}) => {
+  const {
+    enabled = true,
+    staleTime = 30 * 1000, // 30 segundos
+    ...queryOptions
+  } = options;
+
+  return useQuery({
+    queryKey: ['products', 'suggestions', query],
+    queryFn: () => ProductService.getSuggestions(query),
+    enabled: enabled && Boolean(query) && query.length >= 2,
+    staleTime,
+    ...queryOptions,
+  });
+};
+
+/**
  * Hook para buscar produtos com scroll infinito
  * @param {Object} options - Opções do hook
  * @returns {Object} Dados e estado da consulta infinita
@@ -179,6 +201,44 @@ export const useProductsByCategory = (category, options = {}) => {
 };
 
 /**
+ * Hook para buscar produtos por keyword
+ * @param {string} keyword - Keyword para busca
+ * @param {Object} options - Opções do hook
+ * @returns {Object} Dados e estado da consulta
+ */
+export const useProductsByKeyword = (keyword, options = {}) => {
+  const {
+    enabled = Boolean(keyword),
+    keepPreviousData = true,
+    staleTime = 5 * 60 * 1000,
+    ...queryOptions
+  } = options;
+
+  const queryParams = {
+    keyword: keyword,
+    page: 1,
+    limit: PAGINATION.DEFAULT_LIMIT,
+    ...options.params,
+  };
+
+  return useQuery({
+    queryKey: ['products', 'keyword', keyword, queryParams],
+    queryFn: () => ProductService.getProducts(queryParams),
+    enabled,
+    keepPreviousData,
+    staleTime,
+    select: (data) => ({
+      ...data,
+      data: {
+        ...data.data,
+        products: ProductService.formatProductList(data.data.products),
+      },
+    }),
+    ...queryOptions,
+  });
+};
+
+/**
  * Hook para buscar estatísticas de produtos
  * @param {Object} options - Opções do hook
  * @returns {Object} Dados e estado da consulta
@@ -197,4 +257,17 @@ export const useProductStats = (options = {}) => {
     staleTime,
     ...queryOptions,
   });
+};
+
+/**
+ * Hook para extrair metadados de produtos (categorias, keywords, marcas)
+ * @param {Array} products - Lista de produtos
+ * @returns {Object} Metadados extraídos
+ */
+export const useProductMetadata = (products = []) => {
+  return {
+    categories: ProductService.extractCategories(products),
+    keywords: ProductService.extractKeywords(products),
+    brands: ProductService.extractBrands(products),
+  };
 };
