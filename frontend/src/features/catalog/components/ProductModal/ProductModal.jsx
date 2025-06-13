@@ -99,9 +99,7 @@ const ProductModal = () => {
     if (navigator.share) {
       try {
         await navigator.share({ title: product?.nome, text, url });
-      } catch (error) {
-        console.log("Share cancelled");
-      }
+      } catch (error) {}
     } else {
       navigator.clipboard.writeText(url);
       toast.success("Link copiado!");

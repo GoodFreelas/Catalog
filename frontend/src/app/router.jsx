@@ -4,6 +4,11 @@ import { Loader2 } from "lucide-react";
 
 // Lazy loading das páginas
 const CatalogPage = lazy(() => import("../features/catalog/pages/CatalogPage"));
+const ProductDetailPage = lazy(() =>
+  import("../features/catalog/pages/ProductDetailPage")
+);
+const CartPage = lazy(() => import("../features/cart/pages/CartPage"));
+
 // Componente de loading
 const PageLoader = () => (
   <div className="min-h-[400px] flex items-center justify-center">
@@ -25,12 +30,20 @@ const NotFoundPage = () => (
       <p className="text-secondary-600 mb-6">
         A página que você está procurando não existe ou foi removida.
       </p>
-      <button
-        onClick={() => window.history.back()}
-        className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-      >
-        Voltar
-      </button>
+      <div className="flex gap-3 justify-center">
+        <button
+          onClick={() => window.history.back()}
+          className="inline-flex items-center px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
+        >
+          Voltar
+        </button>
+        <button
+          onClick={() => (window.location.href = "/#/catalog")}
+          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          Ir para o Catálogo
+        </button>
+      </div>
     </div>
   </div>
 );
@@ -45,7 +58,13 @@ const AppRouter = () => {
         {/* Catálogo de produtos */}
         <Route path="/catalog" element={<CatalogPage />} />
 
-        {/* Página não encontrada */}
+        {/* Detalhes do produto */}
+        <Route path="/product/:id" element={<ProductDetailPage />} />
+
+        {/* Página do carrinho */}
+        <Route path="/cart" element={<CartPage />} />
+
+        {/* Página não encontrada - deve ser a última rota */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>

@@ -14,6 +14,8 @@ import {
   Plus,
   Check,
   AlertCircle,
+  X,
+  ArrowRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -84,9 +86,7 @@ const ProductDetailPage = () => {
     if (navigator.share) {
       try {
         await navigator.share({ title: product?.nome, text, url });
-      } catch (error) {
-        console.log("Share cancelled");
-      }
+      } catch (error) {}
     } else {
       navigator.clipboard.writeText(url);
       toast.success("Link copiado para área de transferência!");
@@ -120,6 +120,12 @@ const ProductDetailPage = () => {
             {error?.message ||
               "O produto que você está procurando não existe ou foi removido."}
           </p>
+          <div className="space-y-2 mb-6">
+            <p className="text-sm text-secondary-500">ID do produto: {id}</p>
+            <p className="text-sm text-secondary-500">
+              Erro: {JSON.stringify(error)}
+            </p>
+          </div>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={handleBack}>
               Voltar
@@ -300,14 +306,14 @@ const ProductDetailPage = () => {
                 )}
               </span>
 
-              {hasPromotion && (
+              {/* {hasPromotion && (
                 <span className="text-xl text-secondary-500 line-through">
                   {formatCurrency(product.preco)}
                 </span>
-              )}
+              )} */}
             </div>
 
-            {hasPromotion && (
+            {/* {hasPromotion && (
               <div className="flex items-center gap-2">
                 <span className="bg-error-100 text-error-600 text-sm font-medium px-3 py-1 rounded-full">
                   PROMOÇÃO
@@ -320,7 +326,7 @@ const ProductDetailPage = () => {
                   )}
                 </span>
               </div>
-            )}
+            )} */}
           </div>
 
           {/* Controles de quantidade */}

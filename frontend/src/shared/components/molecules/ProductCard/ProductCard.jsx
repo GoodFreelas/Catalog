@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { ShoppingCart, Eye, Heart, ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
 import Button from "../../atoms/Button/Button";
 import { useCartStore } from "../../../../core/stores/cartStore";
+import { useUIStore } from "../../../../core/stores/uiStore";
 import {
   formatCurrency,
   truncateText,
@@ -17,10 +19,12 @@ const ProductCard = ({
   className,
   ...props
 }) => {
+  const navigate = useNavigate();
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   const { addItem, getItemQuantity, isInCart } = useCartStore();
+  const { openModal } = useUIStore();
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -29,7 +33,17 @@ const ProductCard = ({
 
   const handleViewDetails = (e) => {
     e.stopPropagation();
-    onViewDetails?.(product);
+    if (onViewDetails) {
+      onViewDetails(product);
+    } else {
+      // Abrir modal por padrão
+      openModal("productDetail", { productId: product.id });
+    }
+  };
+
+  const handleCardClick = () => {
+    // Navegar para página de detalhes quando clicar no card
+    navigate(`/product/${product.id}`);
   };
 
   const handleAddToWishlist = (e) => {
@@ -41,18 +55,6 @@ const ProductCard = ({
   const isActive = product.situacao === "A";
   const hasImage = product.anexos && product.anexos.length > 0;
   const imageUrl = hasImage ? product.anexos[0].anexo : null;
-
-  // Debug temporário - remova depois
-  if (import.meta.env.DEV) {
-    console.log("Product data:", {
-      id: product.id,
-      nome: product.nome,
-      preco: product.preco,
-      preco_promocional: product.preco_promocional,
-      precoType: typeof product.preco,
-      precoPromocionalType: typeof product.preco_promocional,
-    });
-  }
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -75,7 +77,7 @@ const ProductCard = ({
         },
         className
       )}
-      onClick={handleViewDetails}
+      onClick={handleCardClick}
       {...props}
     >
       {/* Badge de status */}
@@ -185,7 +187,22 @@ const ProductCard = ({
                   ? product.preco_promocional
                   : product.preco
               )}
-            </span>{" "}
+            </span>
+
+            {/* Preço original + badge promoção */}
+            {/* {product.preco_promocional &&
+              parseFloat(product.preco_promocional || 0) > 0 &&
+              parseFloat(product.preco_promocional) <
+                parseFloat(product.preco || 0) && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-secondary-500 line-through">
+                    {formatCurrency(product.preco)}
+                  </span>
+                  <span className="text-xs bg-error-100 text-error-600 px-1.5 py-0.5 rounded">
+                    PROMOÇÃO
+                  </span>
+                </div>
+              )} */}
           </div>
         </div>
 

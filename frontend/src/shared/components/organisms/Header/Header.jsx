@@ -50,7 +50,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
   };
 
   const handleSearch = (searchTerm) => {
-    onSearch?.(searchTerm);
+    // A SearchBar já atualiza o store diretamente, então não precisamos fazer mais nada
   };
 
   const toggleMobileMenu = () => {

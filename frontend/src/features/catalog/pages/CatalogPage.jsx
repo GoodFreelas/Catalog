@@ -15,7 +15,8 @@ const CatalogPage = () => {
   const [page, setPage] = useState(1);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  const { filters, searchTerm, isMobile, openModal, setLoading } = useUIStore();
+  const { filters, searchTerm, isMobile, openModal, setLoading, clearSearch } =
+    useUIStore();
 
   // Query dos produtos
   const {
@@ -29,6 +30,7 @@ const CatalogPage = () => {
     params: {
       page,
       limit: isMobile ? PAGINATION.MOBILE_LIMIT : PAGINATION.DEFAULT_LIMIT,
+      search: searchTerm,
     },
     onError: (error) => {
       console.error("Erro ao carregar produtos:", error);
@@ -51,15 +53,10 @@ const CatalogPage = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Resetar página quando filtros mudarem
+  // Resetar página quando filtros ou busca mudarem
   useEffect(() => {
     setPage(1);
   }, [filters, searchTerm]);
-
-  const handleSearch = (term) => {
-    setPage(1);
-    // A busca é gerenciada pelo useUIStore através do SearchBar
-  };
 
   const handleFilterToggle = () => {
     openModal("filters");
@@ -76,6 +73,10 @@ const CatalogPage = () => {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleClearSearch = () => {
+    clearSearch();
   };
 
   // Estados de carregamento e erro
@@ -106,18 +107,22 @@ const CatalogPage = () => {
         {/* Título e estatísticas */}
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-secondary-900 mb-2">
-            Catálogo de Produtos
+            {searchTerm ? "Resultados da busca" : "Catálogo de Produtos"}
           </h1>
 
-          {stats.total_products && (
-            <div className="flex flex-wrap items-center gap-4 text-sm text-secondary-600">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-secondary-600">
+            {stats.total_products && (
               <span>{stats.total_products} produtos encontrados</span>
-              {stats.active_products && (
-                <span>• {stats.active_products} ativos</span>
-              )}
-              {searchTerm && <span>• Buscando por "{searchTerm}"</span>}
-            </div>
-          )}
+            )}
+            {stats.active_products && (
+              <span>• {stats.active_products} ativos</span>
+            )}
+            {searchTerm && (
+              <span>
+                • Buscando por "<strong>{searchTerm}</strong>"
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Controles de visualização */}
@@ -160,7 +165,9 @@ const CatalogPage = () => {
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-3">
             <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
-            <span className="text-secondary-600">Carregando produtos...</span>
+            <span className="text-secondary-600">
+              {searchTerm ? "Buscando produtos..." : "Carregando produtos..."}
+            </span>
           </div>
         </div>
       )}
@@ -172,22 +179,18 @@ const CatalogPage = () => {
             // Estado vazio
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold text-secondary-900 mb-2">
-                Nenhum produto encontrado
+                {searchTerm
+                  ? "Nenhum produto encontrado"
+                  : "Nenhum produto disponível"}
               </h3>
               <p className="text-secondary-600 mb-6">
-                {searchTerm || Object.values(filters).some(Boolean)
-                  ? "Tente ajustar os filtros de busca"
+                {searchTerm
+                  ? `Não encontramos produtos para "${searchTerm}". Tente buscar com outros termos.`
                   : "Não há produtos disponíveis no momento"}
               </p>
-              {(searchTerm || Object.values(filters).some(Boolean)) && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // Limpar filtros através do store
-                    window.location.reload(); // Solução temporária
-                  }}
-                >
-                  Limpar filtros
+              {searchTerm && (
+                <Button variant="outline" onClick={handleClearSearch}>
+                  Limpar busca
                 </Button>
               )}
             </div>

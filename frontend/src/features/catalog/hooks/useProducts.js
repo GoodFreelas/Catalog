@@ -21,7 +21,7 @@ export const useProducts = (options = {}) => {
   // Combinar filtros do store com opções passadas
   const queryParams = {
     ...ProductService.buildFilterParams(filters),
-    search: searchTerm,
+    search: searchTerm, // Usar searchTerm do store
     ...options.params,
   };
 

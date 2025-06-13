@@ -13,15 +13,7 @@ const apiClient = axios.create({
 // Interceptador de request
 apiClient.interceptors.request.use(
   (config) => {
-    // Log da requisição em desenvolvimento
-    if (import.meta.env.DEV) {
-      console.log('🚀 API Request:', {
-        url: config.url,
-        method: config.method?.toUpperCase(),
-        params: config.params,
-        data: config.data,
-      });
-    }
+
 
     return config;
   },
@@ -34,14 +26,7 @@ apiClient.interceptors.request.use(
 // Interceptador de response
 apiClient.interceptors.response.use(
   (response) => {
-    // Log da resposta em desenvolvimento
-    if (import.meta.env.DEV) {
-      console.log('✅ API Response:', {
-        url: response.config.url,
-        status: response.status,
-        data: response.data,
-      });
-    }
+
 
     return response;
   },

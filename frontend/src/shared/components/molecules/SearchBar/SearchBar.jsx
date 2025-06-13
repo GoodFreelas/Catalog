@@ -4,10 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
 import Button from "../../atoms/Button/Button";
-import SearchSuggestions from "../../../../features/search/components/SearchSuggestions/SearchSuggestions";
 import { useUIStore } from "../../../../core/stores/uiStore";
 import { useDebounce } from "../../../../core/hooks/useDebounce";
-import { useSearchSuggestions } from "../../../../features/search/hooks/useSearch";
 
 const SearchBar = ({
   value = "",
@@ -15,58 +13,30 @@ const SearchBar = ({
   onFilterToggle,
   placeholder = "Buscar produtos...",
   showFilters = true,
-  showSuggestions = true,
   autoFocus = false,
+  showSuggestions, // Capturar para não passar para o DOM
   className,
   ...props
 }) => {
-  const { hasActiveFilters, getActiveFiltersCount } = useUIStore();
+  const { searchTerm, setSearchTerm, hasActiveFilters, getActiveFiltersCount } =
+    useUIStore();
 
-  const [localValue, setLocalValue] = useState(value);
+  const [localValue, setLocalValue] = useState(value || searchTerm);
   const [isFocused, setIsFocused] = useState(false);
-  const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
-  const [searchHistory, setSearchHistory] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const inputRef = useRef(null);
-  const containerRef = useRef(null);
 
-  // Debounce apenas do valor local - sem circular dependency
-  const debouncedValue = useDebounce(localValue, 300);
+  // Debounce para busca automática
+  const debouncedValue = useDebounce(localValue, 500);
 
-  // Hook para buscar sugestões
-  const { data: suggestionsData, isLoading: suggestionsLoading } =
-    useSearchSuggestions(localValue, {
-      enabled:
-        showSuggestions && localValue.length > 0 && localValue.length < 4,
-    });
-
-  const suggestions = suggestionsData?.suggestions || [];
-
-  // Carregar histórico do localStorage apenas uma vez
+  // Inicializar apenas uma vez
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("search-history");
-      if (saved) {
-        setSearchHistory(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
+    if (!isInitialized) {
+      setLocalValue(searchTerm || "");
+      setIsInitialized(true);
     }
-  }, []);
-
-  // Atualizar valor local quando prop value mudar
-  useEffect(() => {
-    if (value !== localValue) {
-      setLocalValue(value);
-    }
-  }, [value]); // Removido localValue da dependência para evitar loop
-
-  // Chamar onSearch quando debouncedValue mudar
-  useEffect(() => {
-    if (debouncedValue !== value) {
-      onSearch?.(debouncedValue);
-    }
-  }, [debouncedValue, onSearch]); // Removido value da dependência
+  }, [searchTerm, isInitialized]);
 
   // Auto focus
   useEffect(() => {
@@ -75,127 +45,68 @@ const SearchBar = ({
     }
   }, [autoFocus]);
 
-  // Fechar sugestões quando clicar fora
+  // Sincronizar com store apenas quando necessário
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target)
-      ) {
-        setShowSuggestionsDropdown(false);
-      }
-    };
+    if (isInitialized && debouncedValue !== searchTerm) {
+      setSearchTerm(debouncedValue);
+      onSearch?.(debouncedValue);
+    }
+  }, [debouncedValue, isInitialized]); // ✅ Removido searchTerm e setSearchTerm das deps
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  // Sincronizar apenas mudanças externas (não iniciadas pelo próprio componente)
+  useEffect(() => {
+    if (
+      isInitialized &&
+      searchTerm !== localValue &&
+      searchTerm !== debouncedValue
+    ) {
+      setLocalValue(searchTerm);
+    }
+  }, [searchTerm, isInitialized]); // ✅ Removido localValue das deps
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
-
-    // Mostrar sugestões quando começar a digitar
-    if (newValue.length > 0 && showSuggestions) {
-      setShowSuggestionsDropdown(true);
-    } else {
-      setShowSuggestionsDropdown(false);
-    }
   };
 
   const handleFocus = () => {
     setIsFocused(true);
-    // Mostrar histórico/sugestões ao focar se tiver conteúdo
-    if (
-      (localValue.length > 0 || searchHistory.length > 0) &&
-      showSuggestions
-    ) {
-      setShowSuggestionsDropdown(true);
-    }
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    // Delay para permitir cliques nas sugestões
-    setTimeout(() => {
-      setShowSuggestionsDropdown(false);
-    }, 200);
   };
 
   const handleClear = () => {
     setLocalValue("");
+    setSearchTerm("");
     onSearch?.("");
-    setShowSuggestionsDropdown(false);
     inputRef.current?.focus();
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Força a busca imediatamente, sem esperar o debounce
+    setSearchTerm(localValue);
     onSearch?.(localValue);
-    setShowSuggestionsDropdown(false);
     inputRef.current?.blur();
-
-    // Adicionar ao histórico
-    if (localValue.trim().length >= 2) {
-      addToHistory(localValue.trim());
-    }
   };
 
-  const handleSuggestionClick = (suggestionText) => {
-    setLocalValue(suggestionText);
-    onSearch?.(suggestionText);
-    setShowSuggestionsDropdown(false);
-    addToHistory(suggestionText);
-  };
-
-  const handleHistoryClick = (historyQuery) => {
-    setLocalValue(historyQuery);
-    onSearch?.(historyQuery);
-    setShowSuggestionsDropdown(false);
-  };
-
-  const addToHistory = (searchTerm) => {
-    if (!searchTerm || searchTerm.length < 2) return;
-
-    const newItem = {
-      id: Date.now(),
-      query: searchTerm,
-      timestamp: new Date().toISOString(),
-    };
-
-    setSearchHistory((prev) => {
-      const filtered = prev.filter(
-        (item) => item.query.toLowerCase() !== searchTerm.toLowerCase()
-      );
-      const updated = [newItem, ...filtered].slice(0, 10);
-
-      localStorage.setItem("search-history", JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const clearHistory = () => {
-    setSearchHistory([]);
-    localStorage.removeItem("search-history");
-  };
-
-  const removeFromHistory = (id) => {
-    setSearchHistory((prev) => {
-      const filtered = prev.filter((item) => item.id !== id);
-      localStorage.setItem("search-history", JSON.stringify(filtered));
-      return filtered;
-    });
-  };
+  // Filtrar props que não devem ir para o DOM
+  const {
+    onSearch: _onSearch,
+    onFilterToggle: _onFilterToggle,
+    showFilters: _showFilters,
+    showSuggestions: _showSuggestions,
+    autoFocus: _autoFocus,
+    ...domProps
+  } = props;
 
   const activeFiltersCount = getActiveFiltersCount();
   const hasFilters = hasActiveFilters();
 
-  const shouldShowSuggestions =
-    showSuggestionsDropdown &&
-    showSuggestions &&
-    (suggestions.length > 0 || searchHistory.length > 0 || suggestionsLoading);
-
   return (
-    <div className={clsx("relative", className)} ref={containerRef} {...props}>
+    <div className={clsx("relative", className)} {...domProps}>
       <form onSubmit={handleSubmit} className="relative">
         {/* Container principal */}
         <div
@@ -293,35 +204,20 @@ const SearchBar = ({
         </div>
       </form>
 
-      {/* Dropdown de sugestões */}
-      {shouldShowSuggestions && (
-        <SearchSuggestions
-          suggestions={suggestions}
-          searchHistory={searchHistory}
-          isLoading={suggestionsLoading}
-          query={localValue}
-          onSuggestionClick={handleSuggestionClick}
-          onHistoryClick={handleHistoryClick}
-          onRemoveFromHistory={removeFromHistory}
-          onClearHistory={clearHistory}
-          show={shouldShowSuggestions}
-        />
-      )}
-
       {/* Indicador de busca ativa */}
       <AnimatePresence>
-        {debouncedValue && !showSuggestionsDropdown && (
+        {searchTerm && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-primary-50 border border-primary-200 rounded-lg p-3 shadow-soft"
+            className="absolute top-full left-0 right-0 mt-2 bg-primary-50 border border-primary-200 rounded-lg p-3 shadow-soft z-10"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-primary-600" />
                 <span className="text-sm text-primary-700">
-                  Buscando por: <strong>"{debouncedValue}"</strong>
+                  Buscando por: <strong>"{searchTerm}"</strong>
                 </span>
               </div>
 

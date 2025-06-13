@@ -7,6 +7,7 @@ import AppRouter from "./router";
 import Header from "../shared/components/organisms/Header/Header";
 import CartDrawer from "../features/cart/components/CartDrawer/CartDrawer";
 import ProductModal from "../features/catalog/components/ProductModal/ProductModal";
+import FilterModal from "../features/catalog/components/FilterModal/FilterModal";
 import { useUIStore } from "../core/stores/uiStore";
 
 // Configuração do React Query
@@ -27,10 +28,12 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { searchTerm, setSearchTerm, openModal } = useUIStore();
+  const { openModal } = useUIStore();
 
   const handleSearch = (term) => {
-    setSearchTerm(term);
+    console.log("App received search term:", term);
+    // A busca será gerenciada pela navegação para SearchPage
+    // Não precisamos fazer nada aqui além de logar
   };
 
   const handleFilterToggle = () => {
@@ -52,6 +55,7 @@ function App() {
           {/* Componentes globais */}
           <CartDrawer />
           <ProductModal />
+          <FilterModal />
 
           {/* Toast notifications */}
           <Toaster

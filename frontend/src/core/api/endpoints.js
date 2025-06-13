@@ -6,7 +6,6 @@ export const ENDPOINTS = {
     BY_ID: (id) => `/products/${id}`,
     SEARCH: '/products/search/text',
     STATS: '/products/stats/general',
-    CATEGORIES: '/products/categories',
     BY_CATEGORY: (category) => `/products/category/${category}`,
   },
 

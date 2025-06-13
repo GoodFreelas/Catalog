@@ -138,13 +138,6 @@ export const sendWhatsAppMessage = (message, phoneNumber = WHATSAPP_CONFIG.PHONE
 
     openWhatsApp(message, formattedNumber);
 
-    // Log para analytics (opcional)
-    console.log('WhatsApp message sent:', {
-      to: formattedNumber,
-      messageLength: message.length,
-      timestamp: new Date().toISOString(),
-    });
-
   } catch (error) {
     console.error('Erro ao enviar mensagem WhatsApp:', error);
     throw error;
