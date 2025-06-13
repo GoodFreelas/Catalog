@@ -23,14 +23,19 @@ const getAllowedOrigins = () => {
   const origins = [
     'http://localhost:5173',              // Vite dev
     'http://localhost:3000',              // React dev local
+    'https://localhost:5173',             // Vite dev HTTPS
+    'https://localhost:3000',             // React dev HTTPS
   ];
 
   // Adicionar origens de produção das variáveis de ambiente
   if (process.env.FRONTEND_URL) {
     origins.push(process.env.FRONTEND_URL);
-    // Adicionar também com barra final para garantir compatibilidade
-    if (!process.env.FRONTEND_URL.endsWith('/')) {
-      origins.push(process.env.FRONTEND_URL + '/');
+    // Adicionar também com e sem barra final
+    const url = process.env.FRONTEND_URL;
+    if (url.endsWith('/')) {
+      origins.push(url.slice(0, -1));
+    } else {
+      origins.push(url + '/');
     }
   }
 
@@ -40,28 +45,94 @@ const getAllowedOrigins = () => {
     origins.push(...additionalUrls);
   }
 
+  // Adicionar domínios Netlify comuns se não especificado
+  if (!process.env.FRONTEND_URL) {
+    origins.push(
+      'https://*.netlify.app',
+      'https://*.netlify.com',
+      'https://app.netlify.com'
+    );
+  }
+
   return origins;
 };
 
 const allowedOrigins = getAllowedOrigins();
 
-// CORS configurado ANTES de todos os middlewares
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200 // Para suportar browsers legados
-}));
+// CORS configurado com opções mais permissivas para produção
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir requests sem origin (mobile apps, postman, etc.)
+    if (!origin) return callback(null, true);
 
-// Middleware para logs de CORS (opcional - para debug)
+    // Verificar se a origin está na lista permitida
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Verificar wildcard patterns para Netlify
+    if (origin.includes('.netlify.app') || origin.includes('.netlify.com')) {
+      return callback(null, true);
+    }
+
+    // Log para debug
+    logger.warn(`CORS bloqueado para origin: ${origin}`);
+    logger.info(`Origins permitidas: ${allowedOrigins.join(', ')}`);
+
+    // Em desenvolvimento, ser mais permissivo
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    callback(new Error('Não permitido pelo CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma'
+  ],
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+  optionsSuccessStatus: 200, // Para suportar browsers legados
+  preflightContinue: false
+};
+
+// CORS aplicado ANTES de todos os middlewares
+app.use(cors(corsOptions));
+
+// Middleware adicional para garantir headers CORS em todas as respostas
 app.use((req, res, next) => {
-  logger.debug(`CORS: ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'undefined'}`);
+  const origin = req.headers.origin;
+
+  // Se a origin for permitida ou se estivermos em desenvolvimento
+  if (allowedOrigins.includes(origin) ||
+    (origin && (origin.includes('.netlify.app') || origin.includes('.netlify.com'))) ||
+    process.env.NODE_ENV !== 'production') {
+
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,Pragma');
+    res.header('Access-Control-Expose-Headers', 'X-Total-Count,X-Page-Count');
+  }
+
+  // Responder preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  logger.debug(`${req.method} ${req.path} - Origin: ${origin || 'no-origin'}`);
   next();
 });
 
 // Middlewares globais
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Conectar ao MongoDB
 connectDB();
@@ -72,7 +143,12 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     cors: 'enabled',
-    origin: req.get('Origin') || 'no-origin'
+    origin: req.get('Origin') || 'no-origin',
+    allowed_origins: allowedOrigins,
+    headers: {
+      'access-control-allow-origin': res.get('Access-Control-Allow-Origin'),
+      'access-control-allow-credentials': res.get('Access-Control-Allow-Credentials')
+    }
   });
 });
 
@@ -84,6 +160,7 @@ app.get('/', (req, res) => {
     status: 'online',
     cors_enabled: true,
     allowed_origins: allowedOrigins,
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       '/products': 'Gestão de produtos',
       '/sync': 'Sincronização',
@@ -171,6 +248,7 @@ const server = app.listen(PORT, () => {
   logger.info(`🚀 Servidor rodando na porta ${PORT}`);
   logger.info(`🌐 CORS habilitado para: ${allowedOrigins.join(', ')}`);
   logger.info(`📅 Sincronização automática diária configurada para todos os dias às 02:00`);
+  logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 
   if (enableFrequentSync) {
     logger.info(`⏱️ Sincronização frequente ativa: a cada ${syncInterval} minutos`);
