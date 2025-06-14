@@ -9,6 +9,7 @@ import CartDrawer from "../features/cart/components/CartDrawer/CartDrawer";
 import ProductModal from "../features/catalog/components/ProductModal/ProductModal";
 import FilterModal from "../features/catalog/components/FilterModal/FilterModal";
 import { useUIStore } from "../core/stores/uiStore";
+import Footer from "../shared/components/organisms/Footer/Footer";
 
 // Configuração do React Query
 const queryClient = new QueryClient({
@@ -48,7 +49,7 @@ function App() {
           <Header onSearch={handleSearch} onFilterToggle={handleFilterToggle} />
 
           {/* Conteúdo principal */}
-          <main className="pb-6">
+          <main className="pb-6 bg-white">
             <AppRouter />
           </main>
 
@@ -86,6 +87,9 @@ function App() {
             }}
           />
         </div>
+        <div className="border-t border-secondary-900"></div>
+        {/* Footer global */}
+        <Footer />
 
         {/* React Query Devtools - apenas em desenvolvimento */}
         {import.meta.env.DEV && (

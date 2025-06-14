@@ -263,11 +263,11 @@ const SearchBar = ({
         <div
           className={clsx(
             "relative flex items-center",
-            "bg-white border rounded-lg transition-all duration-200",
+            "bg-white border rounded-2xl transition-all duration-200",
             "hover:shadow-soft",
             {
               "border-primary-300 shadow-soft": isFocused,
-              "border-secondary-200": !isFocused,
+              "border-secondary-900": !isFocused,
             }
           )}
         >
@@ -276,7 +276,7 @@ const SearchBar = ({
             <Search
               className={clsx(
                 "w-5 h-5 transition-colors duration-200",
-                isFocused ? "text-primary-500" : "text-secondary-400"
+                isFocused ? "text-primary-500" : "text-secondary-900"
               )}
             />
           </div>
@@ -293,7 +293,7 @@ const SearchBar = ({
             className={clsx(
               "w-full pl-10 pr-20 py-3 text-sm",
               "bg-transparent border-none outline-none",
-              "placeholder-secondary-400 text-secondary-900"
+              "placeholder-secondary-900 text-secondary-900"
             )}
             autoComplete="off"
           />

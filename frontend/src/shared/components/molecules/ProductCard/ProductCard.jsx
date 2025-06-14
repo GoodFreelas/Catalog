@@ -69,9 +69,10 @@ const ProductCard = ({
       animate="visible"
       whileHover="hover"
       className={clsx(
-        "group relative bg-white rounded-xl border border-secondary-200",
+        "group relative bg-white rounded-xl border border-secondary-500",
         "shadow-soft hover:shadow-medium transition-all duration-300",
         "overflow-hidden cursor-pointer",
+        "h-auto flex flex-col", // mudou de altura fixa para auto
         {
           "opacity-75": !isActive,
         },
@@ -82,8 +83,8 @@ const ProductCard = ({
     >
       {/* Badge de status */}
       {!isActive && (
-        <div className="absolute top-3 left-3 z-10">
-          <span className="bg-secondary-900 text-white text-xs font-medium px-2 py-1 rounded-md">
+        <div className="absolute top-2 left-2 z-10">
+          <span className="bg-secondary-100 text-white text-xs font-medium px-2 py-1 rounded-md">
             Inativo
           </span>
         </div>
@@ -91,27 +92,33 @@ const ProductCard = ({
 
       {/* Badge de carrinho */}
       {currentQuantity > 0 && (
-        <div className="absolute top-3 right-3 z-10">
+        <div className="absolute top-2 right-2 z-10">
           <span className="bg-primary-600 text-white text-xs font-medium px-2 py-1 rounded-full">
             {currentQuantity}
           </span>
         </div>
       )}
 
-      {/* Container da imagem */}
-      <div className="relative aspect-square bg-secondary-50 overflow-hidden">
+      {/* Container da imagem - reduzido para proporção 1:1 */}
+      <div
+        className="relative w-full aspect-square overflow-hidden flex-shrink-0 p-2 bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url(/src/assets/bgItem.svg)",
+          backgroundSize: "70%",
+        }}
+      >
         {hasImage && !imageError ? (
           <>
             {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-secondary-100 animate-pulse">
-                <ImageIcon className="w-8 h-8 text-secondary-400" />
+              <div className="absolute inset-2 flex items-center justify-center animate-pulse rounded-lg">
+                <ImageIcon className="w-6 h-6 text-secondary-400" />
               </div>
             )}
             <img
               src={imageUrl}
               alt={product.nome}
               className={clsx(
-                "w-full h-full object-cover transition-all duration-300",
+                "w-full h-full object-cover transition-all duration-300 rounded-lg",
                 "group-hover:scale-105",
                 { "opacity-0": imageLoading }
               )}
@@ -123,22 +130,21 @@ const ProductCard = ({
             />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-secondary-100">
-            <ImageIcon className="w-12 h-12 text-secondary-400" />
+          <div className="w-full h-full flex items-center justify-center rounded-lg">
+            <ImageIcon className="w-8 h-8 text-secondary-400" />
           </div>
         )}
 
         {/* Overlay com ações */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+        <div className="absolute inset-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 rounded-lg">
           <Button
             size="sm"
             variant="secondary"
             onClick={handleViewDetails}
             className="bg-white/90 text-secondary-900 hover:bg-white"
           >
-            <Eye size={16} />
+            <Eye size={14} />
           </Button>
-
           {onAddToWishlist && (
             <Button
               size="sm"
@@ -146,79 +152,82 @@ const ProductCard = ({
               onClick={handleAddToWishlist}
               className="bg-white/90 text-secondary-900 hover:bg-white"
             >
-              <Heart size={16} />
+              <Heart size={14} />
             </Button>
           )}
         </div>
       </div>
 
-      {/* Conteúdo do card */}
-      <div className="p-4 space-y-3">
-        {/* Nome do produto */}
-        <div>
-          <h3 className="font-semibold text-secondary-900 text-sm leading-tight">
-            {truncateText(product.nome, 60)}
-          </h3>
+      {/* Conteúdo do card - otimizado para mobile */}
+      <div className="p-3 flex flex-col flex-1 justify-between">
+        <div className="space-y-2">
+          {/* Nome do produto */}
+          <div>
+            <h3 className="font-semibold text-secondary-900 text-sm leading-tight line-clamp-3 h-[3.4rem] overflow-hidden flex items-start">
+              {product.nome}
+            </h3>
 
-          {product.codigo && (
-            <p className="text-xs text-secondary-500 mt-1">
-              Cód: {product.codigo}
+            {product.codigo && (
+              <p className="text-xs text-secondary-500 mt-1 truncate">
+                Cód: {product.codigo}
+              </p>
+            )}
+          </div>
+
+          {/* Descrição - mais compacta */}
+          {product.descricao && (
+            <p className="text-xs text-secondary-600 line-clamp-2 min-h-[2rem]">
+              {product.descricao}
             </p>
           )}
-        </div>
 
-        {/* Descrição */}
-        {product.descricao && (
-          <p className="text-xs text-secondary-600 line-clamp-2">
-            {truncateText(product.descricao, 80)}
-          </p>
-        )}
-
-        {/* Preço */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            {/* Preço principal */}
-            <span className="text-lg font-bold text-primary-600">
-              {formatCurrency(
-                product.preco_promocional &&
-                  parseFloat(product.preco_promocional || 0) > 0 &&
-                  parseFloat(product.preco_promocional) <
-                    parseFloat(product.preco || 0)
-                  ? product.preco_promocional
-                  : product.preco
-              )}
-            </span>
-
-            {/* Preço original + badge promoção */}
-            {/* {product.preco_promocional &&
-              parseFloat(product.preco_promocional || 0) > 0 &&
-              parseFloat(product.preco_promocional) <
-                parseFloat(product.preco || 0) && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-secondary-500 line-through">
-                    {formatCurrency(product.preco)}
-                  </span>
-                  <span className="text-xs bg-error-100 text-error-600 px-1.5 py-0.5 rounded">
-                    PROMOÇÃO
-                  </span>
-                </div>
-              )} */}
+          {/* Preço */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="space-y-0">
+              <span className="text-lg font-bold text-black">
+                {formatCurrency(
+                  product.preco_promocional &&
+                    parseFloat(product.preco_promocional || 0) > 0 &&
+                    parseFloat(product.preco_promocional) <
+                      parseFloat(product.preco || 0)
+                    ? product.preco_promocional
+                    : product.preco
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Botão de adicionar ao carrinho */}
+        {/* Botão de comprar/carrinho - compacto */}
         <Button
           variant={isInCart(product.id) ? "success" : "primary"}
           size="sm"
           fullWidth
           onClick={handleAddToCart}
           disabled={!isActive}
-          leftIcon={<ShoppingCart />}
-          className="mt-3"
+          leftIcon={
+            isInCart(product.id) ? (
+              <div className="flex items-center gap-1">
+                <ShoppingCart size={16} />
+                <span>{currentQuantity}</span>
+              </div>
+            ) : (
+              <img
+                src="/src/assets/compra.svg"
+                alt="Comprar"
+                className="w-4 h-4"
+              />
+            )
+          }
+          className={clsx("mt-3 rounded-2xl text-white font-semibold", {
+            "justify-center": isInCart(product.id),
+          })}
+          style={{
+            backgroundColor: isInCart(product.id) ? "#C80F2E" : "#006336",
+            borderColor: isInCart(product.id) ? "#C80F2E" : "#006336",
+          }}
         >
-          {isInCart(product.id)
-            ? `${currentQuantity} no carrinho`
-            : "Adicionar ao carrinho"}
+          {isInCart(product.id) ? "" : "Comprar"}
         </Button>
       </div>
     </motion.div>

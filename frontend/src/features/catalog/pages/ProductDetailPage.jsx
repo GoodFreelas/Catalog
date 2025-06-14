@@ -132,27 +132,35 @@ const ProductDetailPage = () => {
 
   if (isError || !product) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <AlertCircle className="w-16 h-16 text-error-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-secondary-900 mb-2">
-            Produto não encontrado
-          </h2>
-          <p className="text-secondary-600 mb-6">
-            {error?.message ||
-              "O produto que você está procurando não existe ou foi removido."}
-          </p>
-          <div className="space-y-2 mb-6">
-            <p className="text-sm text-secondary-500">ID do produto: {id}</p>
-            <p className="text-sm text-secondary-500">
-              Erro: {JSON.stringify(error)}
+      <div
+        className="min-h-screen transition-all duration-300"
+        style={{
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <AlertCircle className="w-16 h-16 text-error-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-secondary-900 mb-2">
+              Produto não encontrado
+            </h2>
+            <p className="text-secondary-600 mb-6">
+              {error?.message ||
+                "O produto que você está procurando não existe ou foi removido."}
             </p>
-          </div>
-          <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={handleBack}>
-              Voltar
-            </Button>
-            <Button onClick={() => navigate("/catalog")}>Ver catálogo</Button>
+            <div className="space-y-2 mb-6">
+              <p className="text-sm text-secondary-500">ID do produto: {id}</p>
+              <p className="text-sm text-secondary-500">
+                Erro: {JSON.stringify(error)}
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={handleBack}>
+                Voltar
+              </Button>
+              <Button onClick={() => navigate("/catalog")}>Ver catálogo</Button>
+            </div>
           </div>
         </div>
       </div>
@@ -166,383 +174,399 @@ const ProductDetailPage = () => {
     parseFloat(product.preco_promocional) < parseFloat(product.preco);
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      {/* Header com navegação */}
-      <div className="flex items-center justify-between mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleBack}
-          leftIcon={<ArrowLeft />}
-        >
-          Voltar
-        </Button>
-
-        <div className="flex items-center gap-2">
+    <div
+      className="min-h-screen transition-all duration-300"
+      style={{
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div className="container mx-auto px-4 py-6">
+        {/* Header com navegação */}
+        <div className="flex items-center justify-between mb-6">
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleShare}
-            className="p-2"
+            onClick={handleBack}
+            leftIcon={<ArrowLeft />}
           >
-            <Share2 className="w-5 h-5" />
+            Voltar
           </Button>
-        </div>
-      </div>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-secondary-600 mb-6">
-        <span>Início</span>
-        <span>/</span>
-        <span>Produtos</span>
-        {product.categoria && (
-          <>
-            <span>/</span>
-            <span>{product.categoria}</span>
-          </>
-        )}
-        <span>/</span>
-        <span className="text-secondary-900 font-medium">
-          {truncateText(product.nome, 30)}
-        </span>
-      </div>
-
-      {/* Conteúdo principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-        {/* Galeria de imagens */}
-        <div className="space-y-4">
-          {/* Imagem principal */}
-          <div className="relative aspect-square bg-secondary-50 rounded-xl overflow-hidden border border-secondary-200 group">
-            {hasImages && !imageError ? (
-              <>
-                {imageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-secondary-100 animate-pulse">
-                    <ImageIcon className="w-12 h-12 text-secondary-400" />
-                  </div>
-                )}
-                <img
-                  src={currentImage}
-                  alt={product.nome}
-                  className={clsx(
-                    "w-full h-full object-cover transition-all duration-300",
-                    { "opacity-0": imageLoading }
-                  )}
-                  onLoad={() => setImageLoading(false)}
-                  onError={() => {
-                    setImageError(true);
-                    setImageLoading(false);
-                  }}
-                />
-
-                {/* Botão de zoom */}
-                {!imageLoading && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setShowImageModal(true)}
-                    className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90"
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </Button>
-                )}
-              </>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-secondary-100">
-                <div className="text-center">
-                  <ImageIcon className="w-16 h-16 text-secondary-400 mx-auto mb-2" />
-                  <p className="text-sm text-secondary-600">
-                    Sem imagem disponível
-                  </p>
-                </div>
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              className="p-2"
+            >
+              <Share2 className="w-5 h-5" />
+            </Button>
           </div>
+        </div>
 
-          {/* Thumbnails */}
-          {images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={clsx(
-                    "flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all",
-                    selectedImageIndex === index
-                      ? "border-primary-600 ring-2 ring-primary-200"
-                      : "border-secondary-200 hover:border-primary-300"
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-secondary-600 mb-6">
+          <span>Início</span>
+          <span>/</span>
+          <span>Produtos</span>
+          {product.categoria && (
+            <>
+              <span>/</span>
+              <span>{product.categoria}</span>
+            </>
+          )}
+          <span>/</span>
+          <span className="text-secondary-900 font-medium">
+            {truncateText(product.nome, 30)}
+          </span>
+        </div>
+
+        {/* Conteúdo principal */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          {/* Galeria de imagens */}
+          <div className="space-y-4">
+            {/* Imagem principal */}
+            <div className="relative aspect-square bg-secondary-50 rounded-xl overflow-hidden border border-secondary-200 group">
+              {hasImages && !imageError ? (
+                <>
+                  {imageLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-secondary-100 animate-pulse">
+                      <ImageIcon className="w-12 h-12 text-secondary-400" />
+                    </div>
                   )}
-                >
                   <img
-                    src={image.anexo}
-                    alt={`${product.nome} - ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    src={currentImage}
+                    alt={product.nome}
+                    className={clsx(
+                      "w-full h-full object-cover transition-all duration-300",
+                      { "opacity-0": imageLoading }
+                    )}
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => {
+                      setImageError(true);
+                      setImageLoading(false);
+                    }}
                   />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Informações do produto */}
-        <div className="space-y-6">
-          {/* Status do produto */}
-          {!isActive && (
-            <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-warning-600" />
-                <span className="text-sm font-medium text-warning-800">
-                  Produto inativo
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Título e código */}
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-secondary-900 mb-2">
-              {product.nome}
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm text-secondary-600">
-              {product.codigo && (
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4" />
-                  <span>Código: {product.codigo}</span>
-                </div>
-              )}
-
-              {product.gtin && (
-                <div className="flex items-center gap-2">
-                  <Hash className="w-4 h-4" />
-                  <span>GTIN: {product.gtin}</span>
+                  {/* Botão de zoom */}
+                  {!imageLoading && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowImageModal(true)}
+                      className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-secondary-100">
+                  <div className="text-center">
+                    <ImageIcon className="w-16 h-16 text-secondary-400 mx-auto mb-2" />
+                    <p className="text-sm text-secondary-600">
+                      Sem imagem disponível
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Descrição */}
-          {description && (
-            <div className="prose prose-sm max-w-none">
-              <p className="text-secondary-700 leading-relaxed">
-                {description}
-              </p>
-            </div>
-          )}
-
-          {/* Keywords/Tags */}
-          {keywords.length > 0 && (
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-secondary-700">
-                Tags:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {keywords.map((keyword, index) => (
-                  <span
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {images.map((image, index) => (
+                  <button
                     key={index}
-                    className="px-2 py-1 text-xs bg-primary-50 text-primary-700 rounded-full border border-primary-200"
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={clsx(
+                      "flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all",
+                      selectedImageIndex === index
+                        ? "border-primary-600 ring-2 ring-primary-200"
+                        : "border-secondary-200 hover:border-primary-300"
+                    )}
                   >
-                    {keyword}
-                  </span>
+                    <img
+                      src={image.anexo}
+                      alt={`${product.nome} - ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Preços */}
-          <div className="space-y-3">
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-primary-600">
-                {formatCurrency(
-                  hasPromotion ? product.preco_promocional : product.preco
-                )}
-              </span>
-
-              {hasPromotion && (
-                <span className="text-xl text-secondary-500 line-through">
-                  {formatCurrency(product.preco)}
-                </span>
-              )}
-            </div>
-
-            {hasPromotion && (
-              <div className="flex items-center gap-2">
-                <span className="bg-error-100 text-error-600 text-sm font-medium px-3 py-1 rounded-full">
-                  PROMOÇÃO
-                </span>
-                <span className="text-sm text-success-600 font-medium">
-                  Economia de{" "}
-                  {formatCurrency(
-                    parseFloat(product.preco) -
-                      parseFloat(product.preco_promocional)
-                  )}
-                </span>
-              </div>
             )}
           </div>
 
-          {/* Controles de quantidade */}
-          {isActive && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-secondary-700">
-                  Quantidade:
-                </span>
-
-                <div className="flex items-center border border-secondary-200 rounded-lg">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleQuantityChange(quantity - 1)}
-                    disabled={quantity <= 1}
-                    className="px-3 py-2 rounded-none"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-
-                  <input
-                    type="number"
-                    min="1"
-                    max="99"
-                    value={quantity}
-                    onChange={(e) =>
-                      handleQuantityChange(parseInt(e.target.value) || 1)
-                    }
-                    className="w-16 text-center border-0 focus:outline-none focus:ring-0"
-                  />
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleQuantityChange(quantity + 1)}
-                    disabled={quantity >= 99}
-                    className="px-3 py-2 rounded-none"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
+          {/* Informações do produto */}
+          <div className="space-y-6">
+            {/* Status do produto */}
+            {!isActive && (
+              <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-warning-600" />
+                  <span className="text-sm font-medium text-warning-800">
+                    Produto inativo
+                  </span>
                 </div>
               </div>
+            )}
 
-              {/* Botões de ação */}
-              <div className="space-y-3">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  onClick={handleBuyNow}
-                  leftIcon={<ShoppingCart />}
-                >
-                  Comprar agora
-                </Button>
+            {/* Título e código */}
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-secondary-900 mb-2">
+                {product.nome}
+              </h1>
 
-                <Button
-                  variant="outline"
-                  size="lg"
-                  fullWidth
-                  onClick={handleAddToCart}
-                  leftIcon={isInCart(id) ? <Check /> : <ShoppingCart />}
-                >
-                  {isInCart(id)
-                    ? `Adicionar mais (${cartQuantity} no carrinho)`
-                    : "Adicionar ao carrinho"}
-                </Button>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-secondary-600">
+                {product.codigo && (
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4" />
+                    <span>Código: {product.codigo}</span>
+                  </div>
+                )}
+
+                {product.gtin && (
+                  <div className="flex items-center gap-2">
+                    <Hash className="w-4 h-4" />
+                    <span>GTIN: {product.gtin}</span>
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Informações adicionais */}
-          <div className="space-y-4 pt-6 border-t border-secondary-200">
-            <h3 className="font-semibold text-secondary-900">
-              Informações do produto
-            </h3>
+            {/* Descrição */}
+            {description && (
+              <div className="prose prose-sm max-w-none">
+                <p className="text-secondary-700 leading-relaxed">
+                  {description}
+                </p>
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              {product.categoria && (
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-secondary-500" />
-                  <span className="text-secondary-600">Categoria:</span>
-                  <span className="font-medium">{product.categoria}</span>
+            {/* Keywords/Tags */}
+            {keywords.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-secondary-700">
+                  Tags:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {keywords.map((keyword, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 text-xs bg-primary-50 text-primary-700 rounded-full border border-primary-200"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {product.unidade && (
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-secondary-500" />
-                  <span className="text-secondary-600">Unidade:</span>
-                  <span className="font-medium">{product.unidade}</span>
-                </div>
-              )}
+            {/* Preços */}
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-bold text-primary-600">
+                  {formatCurrency(
+                    hasPromotion ? product.preco_promocional : product.preco
+                  )}
+                </span>
 
-              {product.marca && (
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-secondary-500" />
-                  <span className="text-secondary-600">Marca:</span>
-                  <span className="font-medium">{product.marca}</span>
-                </div>
-              )}
+                {hasPromotion && (
+                  <span className="text-xl text-secondary-500 line-through">
+                    {formatCurrency(product.preco)}
+                  </span>
+                )}
+              </div>
 
-              {metadata?.days_since_sync !== undefined && (
+              {hasPromotion && (
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-secondary-500" />
-                  <span className="text-secondary-600">Atualizado:</span>
-                  <span className="font-medium">
-                    {metadata.days_since_sync === 0
-                      ? "Hoje"
-                      : `${metadata.days_since_sync} dias atrás`}
+                  <span className="bg-error-100 text-error-600 text-sm font-medium px-3 py-1 rounded-full">
+                    PROMOÇÃO
+                  </span>
+                  <span className="text-sm text-success-600 font-medium">
+                    Economia de{" "}
+                    {formatCurrency(
+                      parseFloat(product.preco) -
+                        parseFloat(product.preco_promocional)
+                    )}
                   </span>
                 </div>
               )}
             </div>
+
+            {/* Controles de quantidade */}
+            {isActive && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-secondary-700">
+                    Quantidade:
+                  </span>
+
+                  <div className="flex items-center border border-secondary-200 rounded-lg">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={quantity <= 1}
+                      className="px-3 py-2 rounded-none"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+
+                    <input
+                      type="number"
+                      min="1"
+                      max="99"
+                      value={quantity}
+                      onChange={(e) =>
+                        handleQuantityChange(parseInt(e.target.value) || 1)
+                      }
+                      className="w-16 text-center border-0 focus:outline-none focus:ring-0"
+                    />
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      disabled={quantity >= 99}
+                      className="px-3 py-2 rounded-none"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Botões de ação */}
+                <div className="space-y-3">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    onClick={handleBuyNow}
+                    leftIcon={<ShoppingCart />}
+                  >
+                    Comprar agora
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    fullWidth
+                    onClick={handleAddToCart}
+                    leftIcon={isInCart(id) ? <Check /> : <ShoppingCart />}
+                  >
+                    {isInCart(id)
+                      ? `Adicionar mais (${cartQuantity} no carrinho)`
+                      : "Adicionar ao carrinho"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Informações adicionais */}
+            <div className="space-y-4 pt-6 border-t border-secondary-200">
+              <h3 className="font-semibold text-secondary-900">
+                Informações do produto
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                {product.categoria && (
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-secondary-500" />
+                    <span className="text-secondary-600">Categoria:</span>
+                    <span className="font-medium">{product.categoria}</span>
+                  </div>
+                )}
+
+                {product.unidade && (
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-secondary-500" />
+                    <span className="text-secondary-600">Unidade:</span>
+                    <span className="font-medium">{product.unidade}</span>
+                  </div>
+                )}
+
+                {product.marca && (
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-secondary-500" />
+                    <span className="text-secondary-600">Marca:</span>
+                    <span className="font-medium">{product.marca}</span>
+                  </div>
+                )}
+
+                {metadata?.days_since_sync !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-secondary-500" />
+                    <span className="text-secondary-600">Atualizado:</span>
+                    <span className="font-medium">
+                      {metadata.days_since_sync === 0
+                        ? "Hoje"
+                        : `${metadata.days_since_sync} dias atrás`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Modal de imagem */}
-      <ImageModal
-        isOpen={showImageModal}
-        onClose={() => setShowImageModal(false)}
-        images={images}
-        initialIndex={selectedImageIndex}
-        productName={product.nome}
-      />
+        {/* Modal de imagem */}
+        <ImageModal
+          isOpen={showImageModal}
+          onClose={() => setShowImageModal(false)}
+          images={images}
+          initialIndex={selectedImageIndex}
+          productName={product.nome}
+        />
+      </div>
     </div>
   );
 };
 
 // Componente de loading skeleton
 const ProductDetailSkeleton = () => (
-  <div className="container mx-auto px-4 py-6">
-    <div className="flex items-center justify-between mb-6">
-      <div className="w-20 h-8 bg-secondary-200 rounded shimmer" />
-      <div className="w-8 h-8 bg-secondary-200 rounded shimmer" />
-    </div>
-
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-      <div className="space-y-4">
-        <div className="aspect-square bg-secondary-200 rounded-xl shimmer" />
-        <div className="flex gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="w-20 h-20 bg-secondary-200 rounded-lg shimmer"
-            />
-          ))}
-        </div>
+  <div
+    className="min-h-screen transition-all duration-300"
+    style={{
+      backgroundColor: "rgba(255, 255, 255, 0.95)",
+      backdropFilter: "blur(10px)",
+    }}
+  >
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="w-20 h-8 bg-secondary-200 rounded shimmer" />
+        <div className="w-8 h-8 bg-secondary-200 rounded shimmer" />
       </div>
 
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <div className="w-3/4 h-8 bg-secondary-200 rounded shimmer" />
-          <div className="w-1/2 h-5 bg-secondary-200 rounded shimmer" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <div className="space-y-4">
+          <div className="aspect-square bg-secondary-200 rounded-xl shimmer" />
+          <div className="flex gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-20 h-20 bg-secondary-200 rounded-lg shimmer"
+              />
+            ))}
+          </div>
         </div>
-        <div className="space-y-2">
-          <div className="w-full h-4 bg-secondary-200 rounded shimmer" />
-          <div className="w-5/6 h-4 bg-secondary-200 rounded shimmer" />
-          <div className="w-2/3 h-4 bg-secondary-200 rounded shimmer" />
-        </div>
-        <div className="w-1/3 h-10 bg-secondary-200 rounded shimmer" />
-        <div className="space-y-3">
-          <div className="w-full h-12 bg-secondary-200 rounded shimmer" />
-          <div className="w-full h-12 bg-secondary-200 rounded shimmer" />
+
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <div className="w-3/4 h-8 bg-secondary-200 rounded shimmer" />
+            <div className="w-1/2 h-5 bg-secondary-200 rounded shimmer" />
+          </div>
+          <div className="space-y-2">
+            <div className="w-full h-4 bg-secondary-200 rounded shimmer" />
+            <div className="w-5/6 h-4 bg-secondary-200 rounded shimmer" />
+            <div className="w-2/3 h-4 bg-secondary-200 rounded shimmer" />
+          </div>
+          <div className="w-1/3 h-10 bg-secondary-200 rounded shimmer" />
+          <div className="space-y-3">
+            <div className="w-full h-12 bg-secondary-200 rounded shimmer" />
+            <div className="w-full h-12 bg-secondary-200 rounded shimmer" />
+          </div>
         </div>
       </div>
     </div>

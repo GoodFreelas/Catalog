@@ -107,27 +107,28 @@ const CartDrawer = () => {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-strong z-50 flex flex-col"
           >
-            {/* Header */}
+            {/* Header Customizado */}
             <div className="flex items-center justify-between p-4 border-b border-secondary-200">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-primary-600" />
-                <h2 className="text-lg font-semibold text-secondary-900">
-                  Carrinho
-                </h2>
-                {totalItems > 0 && (
-                  <span className="bg-primary-600 text-white text-xs font-medium px-2 py-1 rounded-full">
-                    {totalItems}
-                  </span>
-                )}
-              </div>
+              {/* Título à esquerda */}
+              <h2
+                className="text-xl font-semibold text-secondary-900"
+                style={{ fontFamily: "Rondal" }}
+              >
+                Carrinho
+              </h2>
 
+              {/* SVG à direita */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={closeCart}
                 className="p-2"
               >
-                <X className="w-5 h-5" />
+                <img
+                  src="/src/assets/cartExit.svg"
+                  alt="Fechar"
+                  className="w-3 h-3"
+                />
               </Button>
             </div>
 
@@ -216,7 +217,7 @@ const CartDrawer = () => {
   );
 };
 
-// Componente do item do carrinho
+// Componente do item do carrinho redesenhado
 const CartItem = ({
   item,
   onRemove,
@@ -233,72 +234,85 @@ const CartItem = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="flex gap-3 p-3 bg-secondary-50 rounded-lg"
+      className="border border-secondary-300 rounded-lg p-3 bg-white"
     >
-      {/* Imagem do produto */}
-      <div className="flex-shrink-0 w-16 h-16 bg-white rounded-lg overflow-hidden border border-secondary-200">
-        {hasImage ? (
-          <img
-            src={item.anexos[0].anexo}
-            alt={item.nome}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-secondary-100">
-            <ShoppingCart className="w-6 h-6 text-secondary-400" />
-          </div>
-        )}
-      </div>
-
-      {/* Informações do produto */}
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-start mb-2">
-          <h4 className="font-medium text-sm text-secondary-900 line-clamp-2">
-            {item.nome}
-          </h4>
-
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => onRemove(item.id)}
-            className="p-1 text-secondary-400 hover:text-error-600 hover:bg-error-50 ml-2"
-          >
-            <X className="w-4 h-4" />
-          </Button>
+      <div className="flex gap-3 items-center">
+        {/* Imagem do produto - alinhada verticalmente */}
+        <div
+          className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-center bg-no-repeat"
+          style={{
+            backgroundImage: "url(/src/assets/bgItem.svg)",
+            backgroundSize: "75%",
+          }}
+        >
+          {hasImage ? (
+            <img
+              src={item.anexos[0].anexo}
+              alt={item.nome}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-secondary-100 rounded-lg">
+              <ShoppingCart className="w-6 h-6 text-secondary-400" />
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center justify-between">
-          {/* Controles de quantidade */}
-          <div className="flex items-center gap-1">
+        {/* Informações do produto */}
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Título */}
+          <div className="flex justify-between items-start">
+            <h4
+              className="font-medium text-sm text-secondary-900 line-clamp-2 pr-2"
+              style={{ fontFamily: "Mona Sans" }}
+            >
+              {item.nome}
+            </h4>
             <Button
               variant="ghost"
               size="xs"
-              onClick={() => onDecrement(item.id)}
-              className="p-1 hover:bg-secondary-200"
+              onClick={() => onRemove(item.id)}
+              className="p-1 text-secondary-400 hover:text-error-600 hover:bg-error-50"
             >
-              <Minus className="w-3 h-3" />
+              <X className="w-4 h-4" />
             </Button>
+          </div>
 
-            <span className="w-8 text-center text-sm font-medium">
+          {/* Controles de quantidade */}
+          <div className="flex items-center gap-2">
+            {/* Botão - (vermelho) */}
+            <button
+              onClick={() => onDecrement(item.id)}
+              className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
+              style={{ backgroundColor: "#C80F2E" }}
+            >
+              <Minus className="w-2 h-2" />
+            </button>
+
+            {/* Quantidade no meio */}
+            <span
+              className="w-4 text-center text-sm font-medium"
+              style={{ fontFamily: "Mona Sans" }}
+            >
               {item.quantity}
             </span>
 
-            <Button
-              variant="ghost"
-              size="xs"
+            {/* Botão + (verde) */}
+            <button
               onClick={() => onIncrement(item.id)}
-              className="p-1 hover:bg-secondary-200"
+              className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
+              style={{ backgroundColor: "#006336" }}
             >
-              <Plus className="w-3 h-3" />
-            </Button>
+              <Plus className="w-2 h-2" />
+            </button>
           </div>
 
-          {/* Preços */}
-          <div className="text-right">
-            <div className="text-xs text-secondary-600">
-              {formatCurrency(item.preco)} cada
-            </div>
-            <div className="font-semibold text-sm text-primary-600">
+          {/* Valor */}
+          <div className="text-left">
+            <div
+              className="text-sm text-black"
+              style={{ fontFamily: "Mona Sans" }}
+            >
               {formatCurrency(itemTotal)}
             </div>
           </div>

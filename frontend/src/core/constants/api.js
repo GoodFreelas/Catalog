@@ -23,7 +23,7 @@ export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 12,
   MAX_LIMIT: 100,
-  MOBILE_LIMIT: 6,
+  MOBILE_LIMIT: 12,
 };
 
 // Filtros de preço predefinidos

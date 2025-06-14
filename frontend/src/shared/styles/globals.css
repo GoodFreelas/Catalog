@@ -323,3 +323,30 @@ body {
 .center-flex {
   @apply flex items-center justify-center;
 }
+
+/* Rondal Regular */
+@font-face {
+  font-family: "Rondal";
+  src: url("../../assets/Rondal-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Rondal Semibold */
+@font-face {
+  font-family: "Rondal";
+  src: url("../../assets/Rondal-Semibold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Rondal Bold */
+@font-face {
+  font-family: "Rondal";
+  src: url("../../assets/Rondal-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

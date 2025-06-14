@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, Menu, X, Store } from "lucide-react";
+import { ShoppingCart, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
@@ -73,21 +73,21 @@ const Header = ({ onSearch, onFilterToggle }) => {
         )}
       >
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16 lg:h-18">
+          {/* Layout Desktop */}
+          <div className="hidden md:flex items-center justify-between h-16 lg:h-18">
             {/* Logo/Brand */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <Store className="w-5 h-5 text-white" />
-                </div>
-                <h1 className="text-xl font-bold text-secondary-900 hidden sm:block">
-                  Catálogo
-                </h1>
+                <img
+                  src="/src/assets/logo.svg"
+                  alt="Logo"
+                  className="w-32 h-32"
+                />
               </div>
             </div>
 
             {/* Barra de busca - Desktop */}
-            <div className="hidden md:block flex-1 max-w-lg mx-8">
+            <div className="flex-1 max-w-lg mx-8">
               <SearchBar
                 onSearch={handleSearch}
                 onFilterToggle={onFilterToggle}
@@ -99,55 +99,138 @@ const Header = ({ onSearch, onFilterToggle }) => {
             {/* Ações do header */}
             <div className="flex items-center gap-2">
               {/* Carrinho - Desktop */}
-              <div className="hidden md:block">
-                <Button
-                  variant="ghost"
-                  onClick={handleCartClick}
-                  className="relative p-2 hover:bg-secondary-100"
-                >
-                  <ShoppingCart className="w-6 h-6 text-secondary-700" />
-
-                  {totalItems > 0 && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center"
-                    >
-                      {totalItems > 99 ? "99+" : totalItems}
-                    </motion.div>
-                  )}
-                </Button>
-              </div>
-
-              {/* Menu mobile toggle */}
-              <div className="md:hidden">
-                <Button
-                  variant="ghost"
-                  onClick={toggleMobileMenu}
-                  className="p-2"
-                >
-                  {mobileMenuOpen ? (
-                    <X className="w-6 h-6" />
-                  ) : (
-                    <Menu className="w-6 h-6" />
-                  )}
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                onClick={handleCartClick}
+                className="relative p-2 hover:bg-secondary-100"
+              >
+                <img
+                  src="/src/assets/cart.svg"
+                  alt="Carrinho"
+                  className="w-6 h-6"
+                />
+                {totalItems > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center"
+                  >
+                    {totalItems > 99 ? "99+" : totalItems}
+                  </motion.div>
+                )}
+              </Button>
             </div>
           </div>
 
-          {/* Barra de busca - Mobile (sempre visível) */}
-          <div className="md:hidden pb-4">
-            <SearchBar
-              onSearch={handleSearch}
-              onFilterToggle={onFilterToggle}
-              placeholder="Buscar produtos..."
-              showSuggestions={true}
-            />
+          {/* Layout Mobile */}
+          <div className="md:hidden">
+            {/* Primeira linha: Logo + Carrinho */}
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <div className="flex items-center gap-4">
+                <img
+                  src="/src/assets/logo.svg"
+                  alt="Logo"
+                  className="w-32 h-32"
+                />
+              </div>
+
+              {/* Carrinho */}
+              <Button
+                variant="ghost"
+                onClick={handleCartClick}
+                className="relative p-2 hover:bg-secondary-100"
+              >
+                <img
+                  src="/src/assets/cart.svg"
+                  alt="Carrinho"
+                  className="w-6 h-6"
+                />
+
+                {totalItems > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center"
+                  >
+                    {totalItems > 99 ? "99+" : totalItems}
+                  </motion.div>
+                )}
+              </Button>
+            </div>
+
+            {/* Linha separadora */}
+            <div className="border-t border-secondary-900"></div>
+
+            {/* Segunda seção: Subtítulos com animação */}
+            <AnimatePresence>
+              {!scrolled && (
+                <motion.div
+                  initial={{ opacity: 1, height: "auto" }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{
+                    opacity: 0,
+                    height: 0,
+                    marginTop: 0,
+                    marginBottom: 0,
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                  }}
+                  transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                  className="p-5 space-y-0 overflow-hidden"
+                >
+                  <motion.h3
+                    initial={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                    className="text-xs text-secondary-900 text-left"
+                    style={{ fontFamily: "Mona Sans, sans-serif" }}
+                  >
+                    Buenas, Detcheler!
+                  </motion.h3>
+                  <motion.h2
+                    initial={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{
+                      duration: 0.4,
+                      ease: [0.4, 0, 0.2, 1],
+                      delay: 0.05,
+                    }}
+                    className="text-3xl font-bold text-secondary-900 text-left"
+                    style={{
+                      fontFamily: "Rondal, Arial, sans-serif",
+                      fontWeight: 900,
+                    }}
+                  >
+                    O que vamos levar hoje?
+                  </motion.h2>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Barra de busca - Mobile */}
+            <motion.div
+              className="pb-3"
+              animate={{
+                paddingTop: scrolled ? "1rem" : "0",
+                paddingBottom: scrolled ? "1rem" : "0.75rem",
+              }}
+              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <SearchBar
+                onSearch={handleSearch}
+                onFilterToggle={onFilterToggle}
+                placeholder="Buscar produtos..."
+                showSuggestions={true}
+              />
+            </motion.div>
+
+            {/* Linha separadora final */}
+            <div className="mt-6 border-t border-secondary-900"></div>
           </div>
         </div>
 
-        {/* Menu mobile */}
+        {/* Menu mobile (caso ainda precise para outras funcionalidades) */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
@@ -159,23 +242,10 @@ const Header = ({ onSearch, onFilterToggle }) => {
             >
               <div className="container mx-auto px-4 py-4">
                 <div className="space-y-4">
-                  {/* Carrinho - Mobile */}
-                  <Button
-                    variant="outline"
-                    fullWidth
-                    onClick={handleCartClick}
-                    leftIcon={<ShoppingCart />}
-                    className="justify-between"
-                  >
-                    <span>Carrinho</span>
-                    {totalItems > 0 && (
-                      <span className="bg-primary-600 text-white text-xs font-medium px-2 py-1 rounded-full">
-                        {totalItems > 99 ? "99+" : totalItems}
-                      </span>
-                    )}
-                  </Button>
-
-                  {/* Outros links do menu mobile podem ser adicionados aqui */}
+                  {/* Outros itens do menu podem ser adicionados aqui */}
+                  <div className="text-sm text-secondary-600">
+                    Menu adicional (se necessário)
+                  </div>
                 </div>
               </div>
             </motion.div>

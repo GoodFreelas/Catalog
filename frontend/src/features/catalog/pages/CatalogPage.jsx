@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Grid, List, Filter, ArrowUp, Loader2 } from "lucide-react";
+import {
+  Grid,
+  List,
+  Filter,
+  ArrowUp,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import clsx from "clsx";
@@ -82,15 +90,23 @@ const CatalogPage = () => {
   // Estados de carregamento e erro
   if (isError) {
     return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center p-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-secondary-900 mb-2">
-            Ops! Algo deu errado
-          </h2>
-          <p className="text-secondary-600 mb-6">
-            {error?.message || "Erro ao carregar produtos"}
-          </p>
-          <Button onClick={() => refetch()}>Tentar novamente</Button>
+      <div
+        className="min-h-screen transition-all duration-300"
+        style={{
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <div className="min-h-[400px] flex flex-col items-center justify-center p-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-secondary-900 mb-2">
+              Ops! Algo deu errado
+            </h2>
+            <p className="text-secondary-600 mb-6">
+              {error?.message || "Erro ao carregar produtos"}
+            </p>
+            <Button onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
         </div>
       </div>
     );
@@ -101,251 +117,186 @@ const CatalogPage = () => {
   const stats = productsData?.data?.stats || {};
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      {/* Header da página */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-        {/* Título e estatísticas */}
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-secondary-900 mb-2">
-            {searchTerm ? "Resultados da busca" : "Catálogo de Produtos"}
-          </h1>
-
-          <div className="flex flex-wrap items-center gap-4 text-sm text-secondary-600">
-            {stats.total_products && (
-              <span>{stats.total_products} produtos encontrados</span>
-            )}
-            {stats.active_products && (
-              <span>• {stats.active_products} ativos</span>
-            )}
-            {searchTerm && (
-              <span>
-                • Buscando por "<strong>{searchTerm}</strong>"
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Controles de visualização */}
-        <div className="flex items-center gap-3">
-          {/* Seletor de modo de visualização */}
-          <div className="hidden md:flex items-center bg-secondary-100 rounded-lg p-1">
-            <Button
-              variant={viewMode === "grid" ? "primary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="px-3 py-2"
-            >
-              <Grid className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "primary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="px-3 py-2"
-            >
-              <List className="w-4 h-4" />
-            </Button>
+    <div
+      className="min-h-screen transition-all duration-300"
+      style={{
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div className="container mx-auto px-4 py-6">
+        {/* Header da página */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2">
+          {/* Título e estatísticas */}
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-secondary-900 mb-2">
+              {searchTerm ? "Resultados da busca" : ""}
+            </h1>
           </div>
 
-          {/* Botão de filtros mobile */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleFilterToggle}
-            leftIcon={<Filter />}
-            className="md:hidden"
-          >
-            Filtros
-          </Button>
-        </div>
-      </div>
-
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
+          {/* Controles de visualização */}
           <div className="flex items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
-            <span className="text-secondary-600">
-              {searchTerm ? "Buscando produtos..." : "Carregando produtos..."}
-            </span>
+            {/* Seletor de modo de visualização */}
+            <div className="hidden md:flex items-center bg-secondary-100 rounded-lg p-1">
+              <Button
+                variant={viewMode === "grid" ? "primary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="px-3 py-2"
+              >
+                <Grid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "primary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="px-3 py-2"
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Lista de produtos */}
-      {!isLoading && (
-        <>
-          {products.length === 0 ? (
-            // Estado vazio
-            <div className="text-center py-12">
-              <h3 className="text-xl font-semibold text-secondary-900 mb-2">
-                {searchTerm
-                  ? "Nenhum produto encontrado"
-                  : "Nenhum produto disponível"}
-              </h3>
-              <p className="text-secondary-600 mb-6">
-                {searchTerm
-                  ? `Não encontramos produtos para "${searchTerm}". Tente buscar com outros termos.`
-                  : "Não há produtos disponíveis no momento"}
-              </p>
-              {searchTerm && (
-                <Button variant="outline" onClick={handleClearSearch}>
-                  Limpar busca
-                </Button>
-              )}
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
+              <span className="text-secondary-600">
+                {searchTerm ? "Buscando produtos..." : "Carregando produtos..."}
+              </span>
             </div>
-          ) : (
-            // Grid de produtos
+          </div>
+        )}
+
+        {/* Lista de produtos */}
+        {!isLoading && (
+          <>
+            {products.length === 0 ? (
+              // Estado vazio
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold text-secondary-900 mb-2">
+                  {searchTerm
+                    ? "Nenhum produto encontrado"
+                    : "Nenhum produto disponível"}
+                </h3>
+                <p className="text-secondary-600 mb-6">
+                  {searchTerm
+                    ? `Não encontramos produtos para "${searchTerm}". Tente buscar com outros termos.`
+                    : "Não há produtos disponíveis no momento"}
+                </p>
+                {searchTerm && (
+                  <Button variant="outline" onClick={handleClearSearch}>
+                    Limpar busca
+                  </Button>
+                )}
+              </div>
+            ) : (
+              // Grid de produtos
+              <motion.div
+                layout
+                className={clsx(
+                  "grid gap-4 lg:gap-6",
+                  viewMode === "grid"
+                    ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                    : "grid-cols-1"
+                )}
+              >
+                <AnimatePresence mode="popLayout">
+                  {products.map((product, index) => (
+                    <motion.div
+                      key={product.id}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <ProductCard
+                        product={product}
+                        onViewDetails={handleProductView}
+                        className={clsx({
+                          "flex flex-row": viewMode === "list",
+                        })}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+
+            {/* Paginação Customizada */}
+            {pagination.total_pages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <Pagination
+                  currentPage={pagination.current_page}
+                  totalPages={pagination.total_pages}
+                  onPageChange={handlePageChange}
+                  isLoading={isFetching}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Botão voltar ao topo */}
+        <AnimatePresence>
+          {showBackToTop && (
             <motion.div
-              layout
-              className={clsx(
-                "grid gap-4 lg:gap-6",
-                viewMode === "grid"
-                  ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                  : "grid-cols-1"
-              )}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="fixed bottom-6 right-6 z-30"
             >
-              <AnimatePresence mode="popLayout">
-                {products.map((product, index) => (
-                  <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <ProductCard
-                      product={product}
-                      onViewDetails={handleProductView}
-                      className={clsx({
-                        "flex flex-row": viewMode === "list",
-                      })}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={scrollToTop}
+                className="rounded-full p-3 shadow-strong"
+              >
+                <ArrowUp className="w-5 h-5" />
+              </Button>
             </motion.div>
           )}
-
-          {/* Paginação */}
-          {pagination.total_pages > 1 && (
-            <div className="mt-8 flex justify-center">
-              <Pagination
-                currentPage={pagination.current_page}
-                totalPages={pagination.total_pages}
-                onPageChange={handlePageChange}
-                isLoading={isFetching}
-              />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Botão voltar ao topo */}
-      <AnimatePresence>
-        {showBackToTop && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed bottom-6 right-6 z-30"
-          >
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={scrollToTop}
-              className="rounded-full p-3 shadow-strong"
-            >
-              <ArrowUp className="w-5 h-5" />
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
     </div>
   );
 };
 
-// Componente de paginação
+// Componente de paginação customizada
 const Pagination = ({ currentPage, totalPages, onPageChange, isLoading }) => {
-  const getVisiblePages = () => {
-    const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
-
-    for (
-      let i = Math.max(2, currentPage - delta);
-      i <= Math.min(totalPages - 1, currentPage + delta);
-      i++
-    ) {
-      range.push(i);
-    }
-
-    if (currentPage - delta > 2) {
-      rangeWithDots.push(1, "...");
-    } else {
-      rangeWithDots.push(1);
-    }
-
-    rangeWithDots.push(...range);
-
-    if (currentPage + delta < totalPages - 1) {
-      rangeWithDots.push("...", totalPages);
-    } else if (totalPages > 1) {
-      rangeWithDots.push(totalPages);
-    }
-
-    return rangeWithDots;
-  };
-
-  const visiblePages = getVisiblePages();
-
   return (
-    <div className="flex items-center gap-2">
-      {/* Página anterior */}
+    <div className="flex items-center justify-center gap-4">
+      {/* Botão Anterior - Amarelo */}
       <Button
         variant="outline"
         size="sm"
         disabled={currentPage === 1 || isLoading}
         onClick={() => onPageChange(currentPage - 1)}
+        className="border-none"
       >
-        Anterior
+        <img src="/src/assets/arrowL.svg" alt="Anterior" className="w-8 h-8" />
       </Button>
 
-      {/* Números das páginas */}
-      <div className="hidden md:flex items-center gap-1">
-        {visiblePages.map((page, index) => (
-          <div key={index}>
-            {page === "..." ? (
-              <span className="px-3 py-2 text-secondary-500">...</span>
-            ) : (
-              <Button
-                variant={currentPage === page ? "primary" : "ghost"}
-                size="sm"
-                disabled={isLoading}
-                onClick={() => onPageChange(page)}
-                className="px-3 py-2"
-              >
-                {page}
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Indicador mobile */}
-      <div className="md:hidden px-3 py-2 text-sm text-secondary-600">
+      {/* Indicador de Páginas - Vermelho */}
+      <div
+        className="px-4 py-2 rounded-full text-sm font-medium text-white"
+        style={{ backgroundColor: "#C80F2E" }}
+      >
         {currentPage} de {totalPages}
       </div>
 
-      {/* Próxima página */}
+      {/* Botão Próxima - Verde */}
       <Button
         variant="outline"
         size="sm"
         disabled={currentPage === totalPages || isLoading}
         onClick={() => onPageChange(currentPage + 1)}
+        className="border-none"
       >
-        Próxima
+        <img src="/src/assets/arrowR.svg" alt="Próxima" className="w-8 h-8" />
       </Button>
     </div>
   );
