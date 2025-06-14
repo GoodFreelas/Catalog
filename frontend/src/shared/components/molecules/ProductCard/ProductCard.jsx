@@ -11,6 +11,7 @@ import {
   formatCurrency,
   truncateText,
 } from "../../../../core/utils/formatters";
+import { assets } from "../../../../assets";
 
 const ProductCard = ({
   product,
@@ -103,7 +104,7 @@ const ProductCard = ({
       <div
         className="relative w-full aspect-square overflow-hidden flex-shrink-0 p-2 bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url(/src/assets/bgItem.svg)",
+          backgroundImage: `url(${assets.bgItem})`,
           backgroundSize: "70%",
         }}
       >
@@ -212,11 +213,7 @@ const ProductCard = ({
                 <span>{currentQuantity}</span>
               </div>
             ) : (
-              <img
-                src="/src/assets/compra.svg"
-                alt="Comprar"
-                className="w-4 h-4"
-              />
+              <img src={assets.compra} alt="Comprar" className="w-4 h-4" />
             )
           }
           className={clsx("mt-3 rounded-2xl text-white font-semibold", {

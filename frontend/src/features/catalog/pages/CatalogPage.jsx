@@ -17,6 +17,7 @@ import ProductCard from "../../../shared/components/molecules/ProductCard/Produc
 import { useProducts } from "../hooks/useProducts";
 import { useUIStore } from "../../../core/stores/uiStore";
 import { PAGINATION } from "../../../core/constants/api";
+import { assets } from "../../../assets";
 
 const CatalogPage = () => {
   const [viewMode, setViewMode] = useState("grid");
@@ -277,7 +278,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, isLoading }) => {
         onClick={() => onPageChange(currentPage - 1)}
         className="border-none"
       >
-        <img src="/src/assets/arrowL.svg" alt="Anterior" className="w-8 h-8" />
+        <img src={assets.arrowL} alt="Anterior" className="w-8 h-8" />
       </Button>
 
       {/* Indicador de Páginas - Vermelho */}
@@ -296,7 +297,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, isLoading }) => {
         onClick={() => onPageChange(currentPage + 1)}
         className="border-none"
       >
-        <img src="/src/assets/arrowR.svg" alt="Próxima" className="w-8 h-8" />
+        <img src={assets.arrowR} alt="Próxima" className="w-8 h-8" />
       </Button>
     </div>
   );

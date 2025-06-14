@@ -7,6 +7,7 @@ import Button from "../../atoms/Button/Button";
 import SearchBar from "../../molecules/SearchBar/SearchBar";
 import { useCartStore } from "../../../../core/stores/cartStore";
 import { useUIStore } from "../../../../core/stores/uiStore";
+import { assets } from "../../../../assets";
 
 const Header = ({ onSearch, onFilterToggle }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,11 +79,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
             {/* Logo/Brand */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <img
-                  src="/src/assets/logo.svg"
-                  alt="Logo"
-                  className="w-32 h-32"
-                />
+                <img src={assets.logo} alt="Logo" className="w-32 h-32" />
               </div>
             </div>
 
@@ -104,11 +101,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
                 onClick={handleCartClick}
                 className="relative p-2 hover:bg-secondary-100"
               >
-                <img
-                  src="/src/assets/cart.svg"
-                  alt="Carrinho"
-                  className="w-6 h-6"
-                />
+                <img src={assets.cart} alt="Carrinho" className="w-6 h-6" />
                 {totalItems > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
@@ -128,11 +121,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
               <div className="flex items-center gap-4">
-                <img
-                  src="/src/assets/logo.svg"
-                  alt="Logo"
-                  className="w-32 h-32"
-                />
+                <img src={assets.logo} alt="Logo" className="w-32 h-32" />
               </div>
 
               {/* Carrinho */}
@@ -141,11 +130,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
                 onClick={handleCartClick}
                 className="relative p-2 hover:bg-secondary-100"
               >
-                <img
-                  src="/src/assets/cart.svg"
-                  alt="Carrinho"
-                  className="w-6 h-6"
-                />
+                <img src={assets.cart} alt="Carrinho" className="w-6 h-6" />
 
                 {totalItems > 0 && (
                   <motion.div

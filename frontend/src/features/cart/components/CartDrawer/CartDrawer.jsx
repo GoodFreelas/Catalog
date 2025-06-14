@@ -18,6 +18,7 @@ import {
   sendWhatsAppMessage,
   formatCartMessage,
 } from "../../../../core/utils/whatsapp";
+import { assets } from "../../../../assets";
 
 const CartDrawer = () => {
   const {
@@ -124,11 +125,7 @@ const CartDrawer = () => {
                 onClick={closeCart}
                 className="p-2"
               >
-                <img
-                  src="/src/assets/cartExit.svg"
-                  alt="Fechar"
-                  className="w-3 h-3"
-                />
+                <img src={assets.cartExit} alt="Fechar" className="w-3 h-3" />
               </Button>
             </div>
 
@@ -241,7 +238,7 @@ const CartItem = ({
         <div
           className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url(/src/assets/bgItem.svg)",
+            backgroundImage: `url(${assets.bgItem})`,
             backgroundSize: "75%",
           }}
         >
