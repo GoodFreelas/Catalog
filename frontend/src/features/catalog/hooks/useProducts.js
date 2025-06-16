@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery } from 'react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { ProductService } from '../services/productService';
 import { useUIStore } from '../../../core/stores/uiStore';
 import { PAGINATION } from '../../../core/constants/api';

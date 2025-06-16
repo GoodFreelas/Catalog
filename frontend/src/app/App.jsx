@@ -1,6 +1,6 @@
-import { BrowserRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "react-query";
-import { ReactQueryDevtools } from "react-query/devtools";
+import { HashRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
 import AppRouter from "./router";
@@ -87,7 +87,7 @@ function App() {
           display: showIntro && !introFinished ? "none" : "block",
         }}
       >
-        <BrowserRouter>
+        <HashRouter>
           <div className="min-h-screen bg-secondary-50">
             {/* Header global */}
             <Header
@@ -141,7 +141,7 @@ function App() {
           {import.meta.env.DEV && (
             <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
           )}
-        </BrowserRouter>
+        </HashRouter>
       </div>
     </QueryClientProvider>
   );
