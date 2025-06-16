@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { assets } from "../../../../assets";
 
 const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const videoRef = useRef(null);
@@ -78,8 +79,7 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         preload="auto"
         controls={false}
       >
-        <source src="/src/assets/intro.mp4" type="video/mp4" />
-        <source src="src/assets/intro.mp4" type="video/mp4" />
+        <source src={assets.IntroVideo} type="video/mp4" />
         Seu navegador não suporta vídeos HTML5.
       </video>
 
