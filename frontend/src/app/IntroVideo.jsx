@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { assets } from "../../../../assets";
+import { assets } from "../assets";
 
 const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const videoRef = useRef(null);
