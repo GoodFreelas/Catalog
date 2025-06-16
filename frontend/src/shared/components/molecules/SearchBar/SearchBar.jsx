@@ -383,7 +383,7 @@ const SearchBar = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-primary-600" />
-                <span className="text-sm text-primary-700">
+                <span className="text-sm text-white">
                   Buscando por: <strong>"{searchTerm}"</strong>
                 </span>
               </div>

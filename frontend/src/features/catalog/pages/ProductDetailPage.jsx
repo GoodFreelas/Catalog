@@ -30,6 +30,7 @@ import {
   formatDate,
   truncateText,
 } from "../../../core/utils/formatters";
+import { assets } from "../../../assets"; // Importa o assets
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -226,12 +227,18 @@ const ProductDetailPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Galeria de imagens */}
           <div className="space-y-4">
-            {/* Imagem principal */}
-            <div className="relative aspect-square bg-secondary-50 rounded-xl overflow-hidden border border-secondary-200 group">
+            {/* Imagem principal - ADICIONADO BACKGROUND */}
+            <div
+              className="relative aspect-square overflow-hidden border border-secondary-200 group bg-center bg-no-repeat rounded-xl p-4"
+              style={{
+                backgroundImage: `url(${assets.bgItem})`,
+                backgroundSize: "70%",
+              }}
+            >
               {hasImages && !imageError ? (
                 <>
                   {imageLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-secondary-100 animate-pulse">
+                    <div className="absolute inset-4 flex items-center justify-center bg-secondary-100 animate-pulse rounded-lg">
                       <ImageIcon className="w-12 h-12 text-secondary-400" />
                     </div>
                   )}
@@ -239,7 +246,7 @@ const ProductDetailPage = () => {
                     src={currentImage}
                     alt={product.nome}
                     className={clsx(
-                      "w-full h-full object-cover transition-all duration-300",
+                      "w-full h-full object-cover transition-all duration-300 rounded-lg",
                       { "opacity-0": imageLoading }
                     )}
                     onLoad={() => setImageLoading(false)}
@@ -255,14 +262,14 @@ const ProductDetailPage = () => {
                       variant="secondary"
                       size="sm"
                       onClick={() => setShowImageModal(true)}
-                      className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90"
+                      className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90"
                     >
                       <ZoomIn className="w-4 h-4" />
                     </Button>
                   )}
                 </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-secondary-100">
+                <div className="w-full h-full flex items-center justify-center bg-secondary-100 rounded-lg">
                   <div className="text-center">
                     <ImageIcon className="w-16 h-16 text-secondary-400 mx-auto mb-2" />
                     <p className="text-sm text-secondary-600">
@@ -273,7 +280,7 @@ const ProductDetailPage = () => {
               )}
             </div>
 
-            {/* Thumbnails */}
+            {/* Thumbnails - ADICIONADO BACKGROUND */}
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {images.map((image, index) => (
@@ -281,16 +288,20 @@ const ProductDetailPage = () => {
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
                     className={clsx(
-                      "flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all",
+                      "flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all bg-center bg-no-repeat p-1",
                       selectedImageIndex === index
                         ? "border-primary-600 ring-2 ring-primary-200"
                         : "border-secondary-200 hover:border-primary-300"
                     )}
+                    style={{
+                      backgroundImage: `url(${assets.bgItem})`,
+                      backgroundSize: "70%",
+                    }}
                   >
                     <img
                       src={image.anexo}
                       alt={`${product.nome} - ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded"
                     />
                   </button>
                 ))}
@@ -354,7 +365,7 @@ const ProductDetailPage = () => {
                   {keywords.map((keyword, index) => (
                     <span
                       key={index}
-                      className="px-2 py-1 text-xs bg-primary-50 text-primary-700 rounded-full border border-primary-200"
+                      className="px-2 py-1 text-xs bg-primary-50 text-white rounded-full border border-primary-200"
                     >
                       {keyword}
                     </span>
@@ -371,28 +382,7 @@ const ProductDetailPage = () => {
                     hasPromotion ? product.preco_promocional : product.preco
                   )}
                 </span>
-
-                {hasPromotion && (
-                  <span className="text-xl text-secondary-500 line-through">
-                    {formatCurrency(product.preco)}
-                  </span>
-                )}
-              </div>
-
-              {hasPromotion && (
-                <div className="flex items-center gap-2">
-                  <span className="bg-error-100 text-error-600 text-sm font-medium px-3 py-1 rounded-full">
-                    PROMOÇÃO
-                  </span>
-                  <span className="text-sm text-success-600 font-medium">
-                    Economia de{" "}
-                    {formatCurrency(
-                      parseFloat(product.preco) -
-                        parseFloat(product.preco_promocional)
-                    )}
-                  </span>
-                </div>
-              )}
+              </div>{" "}
             </div>
 
             {/* Controles de quantidade */}
@@ -417,7 +407,7 @@ const ProductDetailPage = () => {
                     <input
                       type="number"
                       min="1"
-                      max="99"
+                      max="10"
                       value={quantity}
                       onChange={(e) =>
                         handleQuantityChange(parseInt(e.target.value) || 1)
@@ -429,7 +419,7 @@ const ProductDetailPage = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleQuantityChange(quantity + 1)}
-                      disabled={quantity >= 99}
+                      disabled={quantity >= 10}
                       className="px-3 py-2 rounded-none"
                     >
                       <Plus className="w-4 h-4" />
@@ -573,7 +563,7 @@ const ProductDetailSkeleton = () => (
   </div>
 );
 
-// Modal de imagem
+// Modal de imagem - ADICIONADO BACKGROUND NO MODAL TAMBÉM
 const ImageModal = ({ isOpen, onClose, images, initialIndex, productName }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
@@ -611,13 +601,18 @@ const ImageModal = ({ isOpen, onClose, images, initialIndex, productName }) => {
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
-          className="relative max-w-4xl max-h-full"
+          className="relative max-w-4xl max-h-full bg-center bg-no-repeat p-8 rounded-2xl"
+          style={{
+            backgroundImage: `url(${assets.bgItem})`,
+            backgroundSize: "50%",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <img
             src={images[currentIndex]?.anexo}
             alt={`${productName} - ${currentIndex + 1}`}
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain rounded-lg"
           />
 
           {/* Controles */}

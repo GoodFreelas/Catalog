@@ -41,7 +41,7 @@ const Button = forwardRef(
       ],
       outline: [
         "bg-transparent border-2 border-primary-600 text-primary-600",
-        "hover:bg-primary-50 hover:border-primary-700 hover:text-primary-700",
+        "hover:bg-primary-50 hover:border-primary-700 hover:text-white",
         "focus:ring-primary-500",
         "disabled:hover:bg-transparent disabled:hover:border-primary-600",
       ],

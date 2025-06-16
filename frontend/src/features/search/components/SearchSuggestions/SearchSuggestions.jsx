@@ -85,7 +85,7 @@ const SearchSuggestions = ({
 
     return parts.map((part, index) =>
       part.toLowerCase() === query.toLowerCase() ? (
-        <strong key={index} className="font-semibold text-primary-600">
+        <strong key={index} className="font-semibold text-secondary-600">
           {part}
         </strong>
       ) : (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShoppingCart, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -10,21 +11,26 @@ import { useUIStore } from "../../../../core/stores/uiStore";
 import { assets } from "../../../../assets";
 
 const Header = ({ onSearch, onFilterToggle }) => {
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const { openCart, getTotalItems } = useCartStore();
   const { isMobile, setIsMobile } = useUIStore();
 
   const totalItems = getTotalItems();
 
-  // Detectar scroll para alterar aparência do header
+  // Detectar scroll com progresso gradual
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      const scrollY = window.scrollY;
+      // Progresso de 0 a 1 baseado em uma distância de 80px
+      const maxScroll = 80;
+      const progress = Math.min(scrollY / maxScroll, 1);
+      setScrollProgress(progress);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -34,13 +40,12 @@ const Header = ({ onSearch, onFilterToggle }) => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
 
-      // Fechar menu mobile quando tela ficar grande
       if (!mobile && mobileMenuOpen) {
         setMobileMenuOpen(false);
       }
     };
 
-    handleResize(); // Executar na montagem
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [setIsMobile, mobileMenuOpen]);
@@ -51,26 +56,25 @@ const Header = ({ onSearch, onFilterToggle }) => {
   };
 
   const handleSearch = (searchTerm) => {
-    // A SearchBar já atualiza o store diretamente, então não precisamos fazer mais nada
+    // A SearchBar já atualiza o store diretamente
   };
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  const handleLogoClick = () => {
+    navigate("/");
+  };
+
   return (
     <>
-      <motion.header
-        initial={false}
-        animate={{
-          backgroundColor: scrolled
-            ? "rgba(255, 255, 255, 0.95)"
-            : "rgba(255, 255, 255, 1)",
-          backdropFilter: scrolled ? "blur(10px)" : "blur(0px)",
-        }}
+      <header
         className={clsx(
-          "sticky top-0 z-40 border-b transition-all duration-300",
-          scrolled ? "border-secondary-200 shadow-soft" : "border-secondary-100"
+          "sticky top-0 z-40 bg-white border-b transition-all duration-300",
+          scrollProgress > 0.5
+            ? "bg-white/95 backdrop-blur-sm shadow-sm border-gray-300"
+            : "border-gray-200"
         )}
       >
         <div className="container mx-auto px-4">
@@ -78,9 +82,12 @@ const Header = ({ onSearch, onFilterToggle }) => {
           <div className="hidden md:flex items-center justify-between h-16 lg:h-18">
             {/* Logo/Brand */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
+              <button
+                onClick={handleLogoClick}
+                className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80"
+              >
                 <img src={assets.logo} alt="Logo" className="w-32 h-32" />
-              </div>
+              </button>
             </div>
 
             {/* Barra de busca - Desktop */}
@@ -95,21 +102,16 @@ const Header = ({ onSearch, onFilterToggle }) => {
 
             {/* Ações do header */}
             <div className="flex items-center gap-2">
-              {/* Carrinho - Desktop */}
               <Button
                 variant="ghost"
                 onClick={handleCartClick}
-                className="relative p-2 hover:bg-secondary-100"
+                className="relative p-2 hover:bg-secondary-100 transition-colors duration-200"
               >
                 <img src={assets.cart} alt="Carrinho" className="w-6 h-6" />
                 {totalItems > 0 && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center"
-                  >
+                  <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
                     {totalItems > 99 ? "99+" : totalItems}
-                  </motion.div>
+                  </div>
                 )}
               </Button>
             </div>
@@ -121,86 +123,86 @@ const Header = ({ onSearch, onFilterToggle }) => {
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
               <div className="flex items-center gap-4">
-                <img src={assets.logo} alt="Logo" className="w-32 h-32" />
+                <button
+                  onClick={handleLogoClick}
+                  className="transition-opacity duration-200 hover:opacity-80"
+                >
+                  <img
+                    src={assets.logo}
+                    alt="Detcheler"
+                    className="w-32 h-32"
+                  />
+                </button>
               </div>
 
               {/* Carrinho */}
               <Button
                 variant="ghost"
                 onClick={handleCartClick}
-                className="relative p-2 hover:bg-secondary-100"
+                className="relative p-2 hover:bg-secondary-100 transition-colors duration-200"
               >
                 <img src={assets.cart} alt="Carrinho" className="w-6 h-6" />
-
                 {totalItems > 0 && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center"
-                  >
+                  <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
                     {totalItems > 99 ? "99+" : totalItems}
-                  </motion.div>
+                  </div>
                 )}
               </Button>
             </div>
+          </div>
+        </div>
 
-            {/* Linha separadora */}
-            <div className="border-t border-secondary-900"></div>
+        {/* Linha separadora 1 - Full width, fina e cor suave */}
+        <div className="w-full h-px bg-gray-300"></div>
 
-            {/* Segunda seção: Subtítulos com animação */}
-            <AnimatePresence>
-              {!scrolled && (
-                <motion.div
-                  initial={{ opacity: 1, height: "auto" }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{
-                    opacity: 0,
-                    height: 0,
-                    marginTop: 0,
-                    marginBottom: 0,
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                  }}
-                  transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                  className="p-5 space-y-0 overflow-hidden"
-                >
-                  <motion.h3
-                    initial={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                    className="text-xs text-secondary-900 text-left"
-                    style={{ fontFamily: "Mona Sans, sans-serif" }}
-                  >
-                    Buenas, Detcheler!
-                  </motion.h3>
-                  <motion.h2
-                    initial={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{
-                      duration: 0.4,
-                      ease: [0.4, 0, 0.2, 1],
-                      delay: 0.05,
-                    }}
-                    className="text-3xl font-bold text-secondary-900 text-left"
-                    style={{
-                      fontFamily: "Rondal, Arial, sans-serif",
-                      fontWeight: 900,
-                    }}
-                  >
-                    O que vamos levar hoje?
-                  </motion.h2>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Barra de busca - Mobile */}
-            <motion.div
-              className="pb-3"
-              animate={{
-                paddingTop: scrolled ? "1rem" : "0",
-                paddingBottom: scrolled ? "1rem" : "0.75rem",
+        {/* Segunda seção: Subtítulos (só mobile) - ANIMAÇÃO BASEADA EM PROGRESSO */}
+        <div className="md:hidden">
+          <div className="container mx-auto px-4">
+            <div
+              className="px-1 overflow-hidden transition-all duration-300 ease-out"
+              style={{
+                height: `${(1 - scrollProgress) * 64}px`, // 64px = h-16, diminui gradualmente
+                opacity: 1 - scrollProgress, // Fade out gradual
+                paddingTop: `${(1 - scrollProgress) * 16}px`, // py-4 = 16px
+                paddingBottom: `${(1 - scrollProgress) * 16}px`,
+                transform: `translateY(${scrollProgress * -20}px)`, // Desliza para cima gradualmente
               }}
-              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <div
+                style={{
+                  opacity: 1 - scrollProgress * 1.2, // Titles desaparecem um pouco mais rápido
+                  transform: `translateY(${scrollProgress * -10}px)`,
+                }}
+              >
+                <h3
+                  className="text-xs text-secondary-600 text-left mb-1"
+                  style={{ fontFamily: "Mona Sans, sans-serif" }}
+                >
+                  Buenas, Detcheler!
+                </h3>
+                <h2
+                  className="text-2xl font-bold text-secondary-900 text-left"
+                  style={{
+                    fontFamily: "Rondal, Arial, sans-serif",
+                    fontWeight: 900,
+                  }}
+                >
+                  O que vamos levar hoje?
+                </h2>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de busca - Mobile - AJUSTE GRADUAL DO PADDING */}
+        <div className="md:hidden">
+          <div className="container mx-auto px-4">
+            <div
+              className="px-0 transition-all duration-300 ease-out"
+              style={{
+                paddingTop: `${16 + scrollProgress * 16}px`, // Vai de 16px para 32px
+                paddingBottom: `${12 + scrollProgress * 4}px`, // Vai de 12px para 16px
+              }}
             >
               <SearchBar
                 onSearch={handleSearch}
@@ -208,48 +210,34 @@ const Header = ({ onSearch, onFilterToggle }) => {
                 placeholder="Buscar produtos..."
                 showSuggestions={true}
               />
-            </motion.div>
-
-            {/* Linha separadora final */}
-            <div className="mt-6 border-t border-secondary-900"></div>
+            </div>
           </div>
         </div>
 
-        {/* Menu mobile (caso ainda precise para outras funcionalidades) */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden border-t border-secondary-200 bg-white"
-            >
-              <div className="container mx-auto px-4 py-4">
-                <div className="space-y-4">
-                  {/* Outros itens do menu podem ser adicionados aqui */}
-                  <div className="text-sm text-secondary-600">
-                    Menu adicional (se necessário)
-                  </div>
+        {/* Linha separadora 2 - Full width, fina e cor suave */}
+        <div className="w-full h-px bg-gray-300 md:hidden"></div>
+
+        {/* Menu mobile overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-300 bg-white/95 backdrop-blur-sm">
+            <div className="container mx-auto px-4 py-4">
+              <div className="space-y-4">
+                <div className="text-sm text-secondary-600">
+                  Menu adicional (se necessário)
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.header>
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* Overlay para fechar menu mobile */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
     </>
   );
 };

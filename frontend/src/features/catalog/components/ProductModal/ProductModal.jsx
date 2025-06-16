@@ -22,6 +22,7 @@ import {
   formatCurrency,
   truncateText,
 } from "../../../../core/utils/formatters";
+import { assets } from "../../../../assets"; // Importa o assets
 
 const ProductModal = () => {
   const navigate = useNavigate();
@@ -177,16 +178,22 @@ const ProductModal = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                 {/* Imagens */}
                 <div className="space-y-4">
-                  {/* Imagem principal */}
-                  <div className="relative aspect-square bg-secondary-50 rounded-xl overflow-hidden">
+                  {/* Imagem principal - ADICIONADO BACKGROUND */}
+                  <div
+                    className="relative aspect-square overflow-hidden rounded-xl bg-center bg-no-repeat p-3"
+                    style={{
+                      backgroundImage: `url(${assets.bgItem})`,
+                      backgroundSize: "70%",
+                    }}
+                  >
                     {hasImages ? (
                       <img
                         src={images[selectedImageIndex]?.anexo}
                         alt={product.nome}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover rounded-lg"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary-100">
+                      <div className="w-full h-full flex items-center justify-center bg-secondary-100 rounded-lg">
                         <span className="text-secondary-500">Sem imagem</span>
                       </div>
                     )}
@@ -196,14 +203,14 @@ const ProductModal = () => {
                         variant="secondary"
                         size="sm"
                         onClick={handleViewFullDetails}
-                        className="absolute top-3 right-3 bg-white/90"
+                        className="absolute top-5 right-5 bg-white/90"
                       >
                         <ZoomIn className="w-4 h-4" />
                       </Button>
                     )}
                   </div>
 
-                  {/* Thumbnails */}
+                  {/* Thumbnails - ADICIONADO BACKGROUND */}
                   {images.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {images.slice(0, 4).map((image, index) => (
@@ -211,16 +218,20 @@ const ProductModal = () => {
                           key={index}
                           onClick={() => setSelectedImageIndex(index)}
                           className={clsx(
-                            "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all",
+                            "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all bg-center bg-no-repeat p-1",
                             selectedImageIndex === index
                               ? "border-primary-600"
                               : "border-secondary-200 hover:border-primary-300"
                           )}
+                          style={{
+                            backgroundImage: `url(${assets.bgItem})`,
+                            backgroundSize: "70%",
+                          }}
                         >
                           <img
                             src={image.anexo}
                             alt={`${product.nome} - ${index + 1}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover rounded"
                           />
                         </button>
                       ))}
@@ -228,7 +239,11 @@ const ProductModal = () => {
                       {images.length > 4 && (
                         <button
                           onClick={handleViewFullDetails}
-                          className="flex-shrink-0 w-16 h-16 rounded-lg bg-secondary-100 border-2 border-secondary-200 hover:border-primary-300 flex items-center justify-center text-xs text-secondary-600 transition-all"
+                          className="flex-shrink-0 w-16 h-16 rounded-lg bg-secondary-100 border-2 border-secondary-200 hover:border-primary-300 flex items-center justify-center text-xs text-secondary-600 transition-all bg-center bg-no-repeat"
+                          style={{
+                            backgroundImage: `url(${assets.bgItem})`,
+                            backgroundSize: "70%",
+                          }}
                         >
                           +{images.length - 4}
                         </button>
@@ -277,19 +292,7 @@ const ProductModal = () => {
                             : product.preco
                         )}
                       </span>
-
-                      {hasPromotion && (
-                        <span className="text-lg text-secondary-500 line-through">
-                          {formatCurrency(product.preco)}
-                        </span>
-                      )}
                     </div>
-
-                    {hasPromotion && (
-                      <span className="inline-block bg-error-100 text-error-600 text-xs font-medium px-2 py-1 rounded-full">
-                        PROMOÇÃO
-                      </span>
-                    )}
                   </div>
 
                   {/* Controles de quantidade */}

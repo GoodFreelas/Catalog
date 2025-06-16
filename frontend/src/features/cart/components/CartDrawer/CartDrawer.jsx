@@ -125,7 +125,7 @@ const CartDrawer = () => {
                 onClick={closeCart}
                 className="p-2"
               >
-                <img src={assets.cartExit} alt="Fechar" className="w-3 h-3" />
+                <img src={assets.cartExit} alt="Fechar" className="w-4 h-4" />
               </Button>
             </div>
 

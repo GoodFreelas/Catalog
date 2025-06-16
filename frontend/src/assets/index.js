@@ -5,6 +5,7 @@ import bgItem from './bgItem.svg'
 import compra from './compra.svg'
 import arrowL from './arrowL.svg'
 import arrowR from './arrowR.svg'
+import intro from './intro.mp4'
 
 export const assets = {
   logo,
@@ -13,5 +14,6 @@ export const assets = {
   bgItem,
   compra,
   arrowL,
-  arrowR
+  arrowR,
+  intro
 }
