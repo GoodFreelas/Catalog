@@ -6,6 +6,8 @@ import compra from './compra.svg'
 import arrowL from './arrowL.svg'
 import arrowR from './arrowR.svg'
 import intro from './intro.mp4'
+import whats from './whats.svg'
+import trash from './trash.svg'
 
 export const assets = {
   logo,
@@ -15,5 +17,7 @@ export const assets = {
   compra,
   arrowL,
   arrowR,
-  intro
+  intro,
+  whats,
+  trash
 }

@@ -21,7 +21,7 @@ export const PRODUCT_STATUS_LABELS = {
 // Configurações de paginação
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
-  DEFAULT_LIMIT: 12,
+  DEFAULT_LIMIT: 15,
   MAX_LIMIT: 100,
   MOBILE_LIMIT: 12,
 };

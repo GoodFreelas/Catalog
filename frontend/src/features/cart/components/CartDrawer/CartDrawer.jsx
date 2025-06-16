@@ -1,15 +1,7 @@
 import { useEffect } from "react";
-import {
-  X,
-  ShoppingCart,
-  Plus,
-  Minus,
-  Trash2,
-  MessageCircle,
-} from "lucide-react";
+import { X, ShoppingCart, Plus, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
-import clsx from "clsx";
 
 import Button from "../../../../shared/components/atoms/Button/Button";
 import { useCartStore } from "../../../../core/stores/cartStore";
@@ -167,7 +159,7 @@ const CartDrawer = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-secondary-600">
-                      Itens ({totalItems})
+                      Produtos ({totalItems})
                     </span>
                     <span className="text-secondary-900">
                       {formatCurrency(totalPrice)}
@@ -176,7 +168,7 @@ const CartDrawer = () => {
 
                   <div className="flex justify-between text-lg font-semibold">
                     <span className="text-secondary-900">Total</span>
-                    <span className="text-primary-600">
+                    <span className="text-black-600">
                       {formatCurrency(totalPrice)}
                     </span>
                   </div>
@@ -184,26 +176,32 @@ const CartDrawer = () => {
 
                 {/* Botões de ação */}
                 <div className="space-y-3">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    fullWidth
+                  {/* Botão WhatsApp com primary-600 e animação */}
+                  <button
                     onClick={handleCheckout}
-                    leftIcon={<MessageCircle />}
+                    className="w-full py-4 px-6 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden"
                   >
-                    Finalizar no WhatsApp
-                  </Button>
+                    {/* Efeito de brilho animado */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-100%] hover:animate-[shimmer_1.5s_ease-in-out] pointer-events-none"></div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    fullWidth
+                    <img
+                      src={assets.whats}
+                      alt="WhatsApp"
+                      className="w-6 h-6"
+                    />
+                    <span className="text-lg font-bold tracking-wide">
+                      Finalizar no WhatsApp
+                    </span>
+                  </button>
+
+                  {/* Botão limpar carrinho sem background */}
+                  <button
                     onClick={handleClearCart}
-                    leftIcon={<Trash2 />}
-                    className="text-error-600 hover:text-error-700 hover:bg-error-50"
+                    className="w-full py-3 px-4 text-gray-600 hover:text-red-600 font-medium transition-colors duration-200 flex items-center justify-center gap-2"
                   >
-                    Limpar carrinho
-                  </Button>
+                    <img src={assets.trash} alt="Limpar" className="w-5 h-5" />
+                    <span>Limpar carrinho</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -214,7 +212,7 @@ const CartDrawer = () => {
   );
 };
 
-// Componente do item do carrinho redesenhado
+// Componente do item do carrinho
 const CartItem = ({
   item,
   onRemove,
@@ -234,7 +232,7 @@ const CartItem = ({
       className="border border-secondary-300 rounded-lg p-3 bg-white"
     >
       <div className="flex gap-3 items-center">
-        {/* Imagem do produto - alinhada verticalmente */}
+        {/* Imagem do produto */}
         <div
           className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-center bg-no-repeat"
           style={{
@@ -256,7 +254,7 @@ const CartItem = ({
         </div>
 
         {/* Informações do produto */}
-        <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex-1 min-w-0">
           {/* Título */}
           <div className="flex justify-between items-start">
             <h4
@@ -269,48 +267,48 @@ const CartItem = ({
               variant="ghost"
               size="xs"
               onClick={() => onRemove(item.id)}
-              className="p-1 text-secondary-400 hover:text-error-600 hover:bg-error-50"
+              className=" text-secondary-400 hover:text-error-600 hover:bg-error-50"
             >
               <X className="w-4 h-4" />
             </Button>
-          </div>
-
-          {/* Controles de quantidade */}
-          <div className="flex items-center gap-2">
-            {/* Botão - (vermelho) */}
-            <button
-              onClick={() => onDecrement(item.id)}
-              className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
-              style={{ backgroundColor: "#C80F2E" }}
-            >
-              <Minus className="w-2 h-2" />
-            </button>
-
-            {/* Quantidade no meio */}
-            <span
-              className="w-4 text-center text-sm font-medium"
-              style={{ fontFamily: "Mona Sans" }}
-            >
-              {item.quantity}
-            </span>
-
-            {/* Botão + (verde) */}
-            <button
-              onClick={() => onIncrement(item.id)}
-              className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
-              style={{ backgroundColor: "#006336" }}
-            >
-              <Plus className="w-2 h-2" />
-            </button>
           </div>
 
           {/* Valor */}
           <div className="text-left">
             <div
               className="text-sm text-black"
-              style={{ fontFamily: "Mona Sans" }}
+              style={{ fontFamily: "Mona Sans", fontWeight: 700 }}
             >
               {formatCurrency(itemTotal)}
+            </div>
+
+            {/* Controles de quantidade */}
+            <div className="flex items-center gap-1 mt-2">
+              {/* Botão - (vermelho) */}
+              <button
+                onClick={() => onDecrement(item.id)}
+                className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                style={{ backgroundColor: "#C80F2E" }}
+              >
+                <Minus className="w-2 h-2" />
+              </button>
+
+              {/* Quantidade no meio */}
+              <span
+                className="w-4 text-center text-base font-medium"
+                style={{ fontFamily: "Mona Sans" }}
+              >
+                {item.quantity}
+              </span>
+
+              {/* Botão + (verde) */}
+              <button
+                onClick={() => onIncrement(item.id)}
+                className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                style={{ backgroundColor: "#006336" }}
+              >
+                <Plus className="w-2 h-2" />
+              </button>
             </div>
           </div>
         </div>

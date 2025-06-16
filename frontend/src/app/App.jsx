@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
+import { ArrowUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import AppRouter from "./router";
 import Header from "../shared/components/organisms/Header/Header";
 import CartDrawer from "../features/cart/components/CartDrawer/CartDrawer";
@@ -33,14 +35,19 @@ function App() {
   const { openModal } = useUIStore();
   const [showIntro, setShowIntro] = useState(true);
   const [introFinished, setIntroFinished] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Verifica se o usuário já viu a introdução nesta sessão
+  useEffect(() => {}, []);
+
+  // Detectar scroll para botão "voltar ao topo"
   useEffect(() => {
-    const hasSeenIntro = sessionStorage.getItem("hasSeenIntro");
-    if (hasSeenIntro) {
-      setShowIntro(false);
-      setIntroFinished(true);
-    }
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleIntroEnd = () => {
@@ -65,6 +72,10 @@ function App() {
 
   const handleFilterToggle = () => {
     openModal("filters");
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -133,6 +144,32 @@ function App() {
                 },
               }}
             />
+
+            {/* Botão Voltar ao Topo Global */}
+            <AnimatePresence>
+              {showBackToTop && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed bottom-6 right-6 z-[9999]"
+                  style={{
+                    position: "fixed",
+                    bottom: "24px",
+                    right: "24px",
+                    zIndex: 9999,
+                  }}
+                >
+                  <button
+                    onClick={scrollToTop}
+                    className="bg-primary-600 hover:bg-primary-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                  >
+                    <ArrowUp className="w-6 h-6" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <div className="border-t border-secondary-900"></div>
           {/* Footer global */}

@@ -240,27 +240,6 @@ const CatalogPage = () => {
             )}
           </>
         )}
-
-        {/* Botão voltar ao topo */}
-        <AnimatePresence>
-          {showBackToTop && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="fixed bottom-6 right-6 z-30"
-            >
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={scrollToTop}
-                className="rounded-full p-3 shadow-strong"
-              >
-                <ArrowUp className="w-5 h-5" />
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
@@ -270,16 +249,14 @@ const CatalogPage = () => {
 const Pagination = ({ currentPage, totalPages, onPageChange, isLoading }) => {
   return (
     <div className="flex items-center justify-center gap-4">
-      {/* Botão Anterior - Amarelo */}
-      <Button
-        variant="outline"
-        size="sm"
+      {/* Botão Anterior - Apenas com escala no hover */}
+      <button
         disabled={currentPage === 1 || isLoading}
         onClick={() => onPageChange(currentPage - 1)}
-        className="border-none"
+        className="disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 transition-transform duration-200 ease-out"
       >
         <img src={assets.arrowL} alt="Anterior" className="w-8 h-8" />
-      </Button>
+      </button>
 
       {/* Indicador de Páginas - Vermelho */}
       <div
@@ -289,16 +266,14 @@ const Pagination = ({ currentPage, totalPages, onPageChange, isLoading }) => {
         {currentPage} de {totalPages}
       </div>
 
-      {/* Botão Próxima - Verde */}
-      <Button
-        variant="outline"
-        size="sm"
+      {/* Botão Próxima - Apenas com escala no hover */}
+      <button
         disabled={currentPage === totalPages || isLoading}
         onClick={() => onPageChange(currentPage + 1)}
-        className="border-none"
+        className="disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 transition-transform duration-200 ease-out"
       >
         <img src={assets.arrowR} alt="Próxima" className="w-8 h-8" />
-      </Button>
+      </button>
     </div>
   );
 };
