@@ -105,7 +105,7 @@ const CartDrawer = () => {
               {/* Título à esquerda */}
               <h2
                 className="text-xl font-semibold text-secondary-900"
-                style={{ fontFamily: "Rondal" }}
+                style={{ fontFamily: "Mona Sans, sans-serif" }}
               >
                 Carrinho
               </h2>
