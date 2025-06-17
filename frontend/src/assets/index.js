@@ -6,6 +6,7 @@ import compra from './compra.svg'
 import arrowL from './arrowL.svg'
 import arrowR from './arrowR.svg'
 import intro from './intro.mp4'
+import introH from './introH.mp4'
 import whats from './whats.svg'
 import trash from './trash.svg'
 import funil from './funil.svg'
@@ -21,5 +22,6 @@ export const assets = {
   intro,
   whats,
   trash,
-  funil
+  funil,
+  introH
 }

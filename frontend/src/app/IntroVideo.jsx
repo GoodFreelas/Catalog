@@ -7,17 +7,19 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
   const [isFirefoxMobile, setIsFirefoxMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Detecta Firefox Mobile e pula o vídeo imediatamente
+  // Detecta se é mobile e Firefox Mobile
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     const isFirefox = userAgent.includes("firefox");
-    const isMobile =
+    const mobileDetected =
       /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
         userAgent
       );
-    const firefoxMobileDetected = isFirefox && isMobile;
+    const firefoxMobileDetected = isFirefox && mobileDetected;
 
+    setIsMobile(mobileDetected);
     setIsFirefoxMobile(firefoxMobileDetected);
 
     // Se for Firefox Mobile, pula o vídeo imediatamente
@@ -118,6 +120,11 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
     }
   };
 
+  // Seleciona o vídeo apropriado baseado no dispositivo
+  const getVideoSource = () => {
+    return isMobile ? assets.intro : assets.introH;
+  };
+
   // Se for Firefox Mobile, não renderiza nada (o vídeo já foi pulado)
   if (isFirefoxMobile) {
     return null;
@@ -154,10 +161,10 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         crossOrigin="anonymous"
       >
         <source
-          src={assets.intro}
+          src={getVideoSource()}
           type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'"
         />
-        <source src={assets.intro} type="video/mp4" />
+        <source src={getVideoSource()} type="video/mp4" />
         Seu navegador não suporta vídeos HTML5.
       </video>
 

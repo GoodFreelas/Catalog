@@ -11,6 +11,7 @@ import {
   formatCartMessage,
 } from "../../../../core/utils/whatsapp";
 import { assets } from "../../../../assets";
+import ExitIcon from "../ExitIcon/ExitIcon";
 
 const CartDrawer = () => {
   const {
@@ -110,12 +111,12 @@ const CartDrawer = () => {
                 Carrinho
               </h2>
 
-              {/* SVG à direita */}
+              {/* ExitIcon à direita */}
               <button
                 onClick={closeCart}
                 className="p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
               >
-                <img src={assets.cartExit} alt="Fechar" className="w-4 h-4" />
+                <ExitIcon size={16} className="text-secondary-600" />
               </button>
             </div>
 
