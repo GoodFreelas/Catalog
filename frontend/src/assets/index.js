@@ -8,6 +8,7 @@ import arrowR from './arrowR.svg'
 import intro from './intro.mp4'
 import whats from './whats.svg'
 import trash from './trash.svg'
+import funil from './funil.svg'
 
 export const assets = {
   logo,
@@ -19,5 +20,6 @@ export const assets = {
   arrowR,
   intro,
   whats,
-  trash
+  trash,
+  funil
 }

@@ -111,14 +111,12 @@ const CartDrawer = () => {
               </h2>
 
               {/* SVG à direita */}
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={closeCart}
-                className="p-2"
+                className="p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
               >
                 <img src={assets.cartExit} alt="Fechar" className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
 
             {/* Conteúdo */}
@@ -179,7 +177,7 @@ const CartDrawer = () => {
                   {/* Botão WhatsApp com primary-600 e animação */}
                   <button
                     onClick={handleCheckout}
-                    className="w-full py-4 px-6 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden"
+                    className="w-full py-4 px-6 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden"
                   >
                     {/* Efeito de brilho animado */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-100%] hover:animate-[shimmer_1.5s_ease-in-out] pointer-events-none"></div>
@@ -194,10 +192,10 @@ const CartDrawer = () => {
                     </span>
                   </button>
 
-                  {/* Botão limpar carrinho sem background */}
+                  {/* Botão limpar carrinho com hover scale */}
                   <button
                     onClick={handleClearCart}
-                    className="w-full py-3 px-4 text-gray-600 hover:text-red-600 font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                    className="w-full py-3 px-4 text-gray-600 hover:text-red-600 font-medium hover:scale-105 transition-all duration-200 ease-in-out flex items-center justify-center gap-2"
                   >
                     <img src={assets.trash} alt="Limpar" className="w-5 h-5" />
                     <span>Limpar carrinho</span>
@@ -267,7 +265,7 @@ const CartItem = ({
               variant="ghost"
               size="xs"
               onClick={() => onRemove(item.id)}
-              className=" text-secondary-400 hover:text-error-600 hover:bg-error-50"
+              className="text-secondary-400 hover:text-error-600 hover:scale-110 transition-all duration-200 ease-in-out"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -287,7 +285,7 @@ const CartItem = ({
               {/* Botão - (vermelho) */}
               <button
                 onClick={() => onDecrement(item.id)}
-                className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold hover:scale-110 transition-transform duration-200 ease-in-out"
                 style={{ backgroundColor: "#C80F2E" }}
               >
                 <Minus className="w-2 h-2" />
@@ -304,7 +302,7 @@ const CartItem = ({
               {/* Botão + (verde) */}
               <button
                 onClick={() => onIncrement(item.id)}
-                className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-bold hover:scale-110 transition-transform duration-200 ease-in-out"
                 style={{ backgroundColor: "#006336" }}
               >
                 <Plus className="w-2 h-2" />

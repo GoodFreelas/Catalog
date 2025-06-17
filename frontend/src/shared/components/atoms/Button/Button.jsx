@@ -47,10 +47,12 @@ const Button = forwardRef(
       ],
       ghost: [
         "bg-transparent text-secondary-700",
-        "hover:bg-secondary-100 hover:text-secondary-900",
-        "focus:ring-secondary-500",
+        "hover:bg-transparent hover:text-secondary-900 hover:scale-105",
+        "active:ring-0 active:outline-none",
+        "focus:ring-0 focus:outline-none focus-visible:outline-none",
         "disabled:hover:bg-transparent",
       ],
+
       success: [
         "bg-success-600 text-white shadow-sm",
         "hover:bg-success-700 hover:shadow-md",

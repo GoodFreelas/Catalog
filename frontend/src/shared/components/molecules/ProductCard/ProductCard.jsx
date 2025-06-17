@@ -1,55 +1,22 @@
 import { useState } from "react";
-import { ShoppingCart, Eye, Heart, ImageIcon } from "lucide-react";
+import { ShoppingCart, ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
 import Button from "../../atoms/Button/Button";
 import { useCartStore } from "../../../../core/stores/cartStore";
-import { useUIStore } from "../../../../core/stores/uiStore";
-import {
-  formatCurrency,
-  truncateText,
-} from "../../../../core/utils/formatters";
+import { formatCurrency } from "../../../../core/utils/formatters";
 import { assets } from "../../../../assets";
 
-const ProductCard = ({
-  product,
-  onViewDetails,
-  onAddToWishlist,
-  className,
-  ...props
-}) => {
-  const navigate = useNavigate();
+const ProductCard = ({ product, className, ...props }) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   const { addItem, getItemQuantity, isInCart } = useCartStore();
-  const { openModal } = useUIStore();
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
     addItem(product);
-  };
-
-  const handleViewDetails = (e) => {
-    e.stopPropagation();
-    if (onViewDetails) {
-      onViewDetails(product);
-    } else {
-      // Abrir modal por padrão
-      openModal("productDetail", { productId: product.id });
-    }
-  };
-
-  const handleCardClick = () => {
-    // Navegar para página de detalhes quando clicar no card
-    navigate(`/product/${product.id}`);
-  };
-
-  const handleAddToWishlist = (e) => {
-    e.stopPropagation();
-    onAddToWishlist?.(product);
   };
 
   const currentQuantity = getItemQuantity(product.id);
@@ -72,14 +39,13 @@ const ProductCard = ({
       className={clsx(
         "group relative bg-white rounded-xl border border-secondary-500",
         "shadow-soft hover:shadow-medium transition-all duration-300",
-        "overflow-hidden cursor-pointer",
-        "h-auto flex flex-col", // mudou de altura fixa para auto
+        "overflow-hidden",
+        "h-auto flex flex-col",
         {
           "opacity-75": !isActive,
         },
         className
       )}
-      onClick={handleCardClick}
       {...props}
     >
       {/* Badge de status */}
@@ -100,7 +66,7 @@ const ProductCard = ({
         </div>
       )}
 
-      {/* Container da imagem - reduzido para proporção 1:1 */}
+      {/* Container da imagem */}
       <div
         className="relative w-full aspect-square overflow-hidden flex-shrink-0 p-2 bg-center bg-no-repeat"
         style={{
@@ -135,31 +101,9 @@ const ProductCard = ({
             <ImageIcon className="w-8 h-8 text-secondary-400" />
           </div>
         )}
-
-        {/* Overlay com ações */}
-        <div className="absolute inset-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 rounded-lg">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleViewDetails}
-            className="bg-white/90 text-secondary-900 hover:bg-white"
-          >
-            <Eye size={14} />
-          </Button>
-          {onAddToWishlist && (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleAddToWishlist}
-              className="bg-white/90 text-secondary-900 hover:bg-white"
-            >
-              <Heart size={14} />
-            </Button>
-          )}
-        </div>
       </div>
 
-      {/* Conteúdo do card - otimizado para mobile */}
+      {/* Conteúdo do card */}
       <div className="p-3 flex flex-col flex-1 justify-between">
         <div className="space-y-2">
           {/* Nome do produto */}
@@ -175,7 +119,7 @@ const ProductCard = ({
             )}
           </div>
 
-          {/* Descrição - mais compacta */}
+          {/* Descrição */}
           {product.descricao && (
             <p className="text-xs text-secondary-600 line-clamp-2 min-h-[2rem]">
               {product.descricao}
@@ -199,7 +143,7 @@ const ProductCard = ({
           </div>
         </div>
 
-        {/* Botão de comprar/carrinho - compacto */}
+        {/* Botão de comprar/carrinho */}
         <Button
           variant={isInCart(product.id) ? "success" : "primary"}
           size="sm"

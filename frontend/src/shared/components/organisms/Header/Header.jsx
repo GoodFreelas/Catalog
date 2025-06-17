@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Menu, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
 import Button from "../../atoms/Button/Button";
@@ -102,10 +100,9 @@ const Header = ({ onSearch, onFilterToggle }) => {
 
             {/* Ações do header */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
+              <button
                 onClick={handleCartClick}
-                className="relative p-2 hover:bg-secondary-100 transition-colors duration-200"
+                className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
               >
                 <img src={assets.cart} alt="Carrinho" className="w-6 h-6" />
                 {totalItems > 0 && (
@@ -113,7 +110,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
                     {totalItems > 99 ? "99+" : totalItems}
                   </div>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -136,10 +133,9 @@ const Header = ({ onSearch, onFilterToggle }) => {
               </div>
 
               {/* Carrinho */}
-              <Button
-                variant="ghost"
+              <button
                 onClick={handleCartClick}
-                className="relative p-2 hover:bg-secondary-100 transition-colors duration-200"
+                className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
               >
                 <img src={assets.cart} alt="Carrinho" className="w-6 h-6" />
                 {totalItems > 0 && (
@@ -147,7 +143,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
                     {totalItems > 99 ? "99+" : totalItems}
                   </div>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -161,7 +157,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
             <div
               className="px-1 overflow-hidden transition-all duration-300 ease-out"
               style={{
-                height: `${(1 - scrollProgress) * 64}px`, // 64px = h-16, diminui gradualmente
+                height: `${(1 - scrollProgress) * 70}px`, // 64px = h-16, diminui gradualmente
                 opacity: 1 - scrollProgress, // Fade out gradual
                 paddingTop: `${(1 - scrollProgress) * 16}px`, // py-4 = 16px
                 paddingBottom: `${(1 - scrollProgress) * 16}px`,
@@ -175,7 +171,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
                 }}
               >
                 <h3
-                  className="text-xs text-secondary-600 text-left mb-1"
+                  className="text-xs text-secondary-600 text-left mt-2"
                   style={{ fontFamily: "Mona Sans, sans-serif" }}
                 >
                   Buenas, Detcheler!
@@ -196,12 +192,12 @@ const Header = ({ onSearch, onFilterToggle }) => {
 
         {/* Barra de busca - Mobile - AJUSTE GRADUAL DO PADDING */}
         <div className="md:hidden">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4 mb-4">
             <div
               className="px-0 transition-all duration-300 ease-out"
               style={{
-                paddingTop: `${16 + scrollProgress * 16}px`, // Vai de 16px para 32px
-                paddingBottom: `${12 + scrollProgress * 4}px`, // Vai de 12px para 16px
+                paddingTop: `${16 + scrollProgress * 2}px`, // Vai de 16px para 32px
+                paddingBottom: `${12 + scrollProgress * 1}px`, // Vai de 12px para 16px
               }}
             >
               <SearchBar

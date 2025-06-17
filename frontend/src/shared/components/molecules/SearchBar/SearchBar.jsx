@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Filter, Tag, Package } from "lucide-react";
+import { Search, X, Tag, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
@@ -8,6 +8,7 @@ import SearchSuggestions from "../../../../features/search/components/SearchSugg
 import { useUIStore } from "../../../../core/stores/uiStore";
 import { useDebounce } from "../../../../core/hooks/useDebounce";
 import { useProducts } from "../../../../features/catalog/hooks/useProducts";
+import { assets } from "../../../../assets";
 
 const SearchBar = ({
   value = "",
@@ -322,7 +323,7 @@ const SearchBar = ({
               )}
             </AnimatePresence>
 
-            {/* Botão de filtros */}
+            {/* Botão de filtros com ícone customizado */}
             {showFilters && (
               <div className="relative">
                 <Button
@@ -337,7 +338,7 @@ const SearchBar = ({
                       : "hover:bg-secondary-100"
                   )}
                 >
-                  <Filter className="w-4 h-4" />
+                  <img src={assets.funil} alt="Filtros" className="w-4 h-4" />
                 </Button>
 
                 {/* Badge com contador de filtros ativos */}

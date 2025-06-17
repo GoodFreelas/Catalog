@@ -8,7 +8,7 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
   const [isFirefoxMobile, setIsFirefoxMobile] = useState(false);
 
-  // Detecta Firefox Mobile
+  // Detecta Firefox Mobile e pula o vídeo imediatamente
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     const isFirefox = userAgent.includes("firefox");
@@ -16,12 +16,24 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
       /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
         userAgent
       );
-    setIsFirefoxMobile(isFirefox && isMobile);
+    const firefoxMobileDetected = isFirefox && isMobile;
 
-    console.log("Firefox Mobile detectado:", isFirefox && isMobile);
-  }, []);
+    setIsFirefoxMobile(firefoxMobileDetected);
+
+    // Se for Firefox Mobile, pula o vídeo imediatamente
+    if (firefoxMobileDetected) {
+      console.log("Firefox Mobile detectado - pulando vídeo de introdução");
+      setTimeout(() => {
+        onEnd();
+      }, 100);
+      return;
+    }
+  }, [onEnd]);
 
   useEffect(() => {
+    // Se for Firefox Mobile, não executa o resto da lógica
+    if (isFirefoxMobile) return;
+
     const video = videoRef.current;
     if (video) {
       // Listeners para debug
@@ -76,12 +88,7 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         }
       };
 
-      // Para Firefox Mobile, aguarda um pouco mais antes de tentar reproduzir
-      if (isFirefoxMobile) {
-        setTimeout(attemptAutoplay, 500);
-      } else {
-        attemptAutoplay();
-      }
+      attemptAutoplay();
     }
   }, [onEnd, isFirefoxMobile]);
 
@@ -110,6 +117,11 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         });
     }
   };
+
+  // Se for Firefox Mobile, não renderiza nada (o vídeo já foi pulado)
+  if (isFirefoxMobile) {
+    return null;
+  }
 
   // Se houver erro, mostra por 1 segundo e depois sai
   if (videoError) {
@@ -178,11 +190,7 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
                 style={{ animationDelay: "0.4s" }}
               ></div>
             </div>
-            <p className="text-white text-sm opacity-70">
-              {isFirefoxMobile
-                ? "Carregando vídeo (Firefox Mobile)..."
-                : "Carregando vídeo..."}
-            </p>
+            <p className="text-white text-sm opacity-70">Carregando vídeo...</p>
           </div>
         </div>
       )}
