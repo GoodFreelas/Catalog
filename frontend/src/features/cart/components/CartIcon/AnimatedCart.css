@@ -1,0 +1,27 @@
+.animated-cart.animated pattern#flagStripes g {
+  animation: stripe-move 2s linear infinite;
+}
+@keyframes stripe-move {
+  from {
+    transform: skewX(-15deg) translateX(0);
+  }
+  to {
+    transform: skewX(-15deg) translateX(-90px);
+  }
+}
+
+.animated-cart.animated .wheel-spin {
+  animation: wheel-spin 2s linear infinite;
+  transform-origin: center center;
+}
+
+@keyframes wheel-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Versão estática (“.static”) não precisa de animações — estilos padrões bastam */

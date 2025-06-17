@@ -103,8 +103,9 @@ const Header = ({ onSearch, onFilterToggle }) => {
               <button
                 onClick={handleCartClick}
                 className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
+                style={{ willChange: "transform" }}
               >
-                <AnimatedCart size={24} />
+                <AnimatedCart size={24} simplified={false} />
                 {totalItems > 0 && (
                   <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
                     {totalItems > 99 ? "99+" : totalItems}
@@ -132,12 +133,13 @@ const Header = ({ onSearch, onFilterToggle }) => {
                 </button>
               </div>
 
-              {/* Carrinho */}
+              {/* Carrinho - Versão simplificada para mobile */}
               <button
                 onClick={handleCartClick}
                 className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
+                style={{ willChange: "transform" }}
               >
-                <AnimatedCart size={24} />
+                <AnimatedCart size={28} simplified={true} />
                 {totalItems > 0 && (
                   <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
                     {totalItems > 99 ? "99+" : totalItems}

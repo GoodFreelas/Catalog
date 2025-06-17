@@ -1,44 +1,43 @@
 import { useEffect, useRef, useState } from "react";
 import { assets } from "../assets";
 
+// Função para detectar se é mobile
+const detectIsMobile = () =>
+  /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+    navigator.userAgent.toLowerCase()
+  );
+
 const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const videoRef = useRef(null);
   const [videoError, setVideoError] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
   const [isFirefoxMobile, setIsFirefoxMobile] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(detectIsMobile()); // detecta logo no início
 
-  // Detecta se é mobile e Firefox Mobile
+  // Detecta Firefox Mobile
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     const isFirefox = userAgent.includes("firefox");
-    const mobileDetected =
-      /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-        userAgent
-      );
+    const mobileDetected = detectIsMobile();
     const firefoxMobileDetected = isFirefox && mobileDetected;
 
     setIsMobile(mobileDetected);
     setIsFirefoxMobile(firefoxMobileDetected);
 
-    // Se for Firefox Mobile, pula o vídeo imediatamente
     if (firefoxMobileDetected) {
       console.log("Firefox Mobile detectado - pulando vídeo de introdução");
       setTimeout(() => {
         onEnd();
       }, 100);
-      return;
     }
   }, [onEnd]);
 
   useEffect(() => {
-    // Se for Firefox Mobile, não executa o resto da lógica
     if (isFirefoxMobile) return;
 
     const video = videoRef.current;
     if (video) {
-      // Listeners para debug
       video.addEventListener("loadeddata", () => {
         console.log("Vídeo carregado com sucesso");
         setVideoLoaded(true);
@@ -50,10 +49,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
 
       video.addEventListener("error", (e) => {
         console.error("Erro ao carregar vídeo:", e);
-        console.error("Detalhes do erro:", {
-          code: e.target.error?.code,
-          message: e.target.error?.message,
-        });
         setVideoError(true);
         setTimeout(() => {
           onEnd();
@@ -64,7 +59,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         console.log("Iniciando carregamento do vídeo");
       });
 
-      // Tentativa de reprodução automática
       const attemptAutoplay = () => {
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -74,7 +68,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
             })
             .catch((error) => {
               console.warn("Autoplay bloqueado:", error);
-              // Se autoplay falhar, mostra botão de play
               if (
                 error.name === "NotAllowedError" ||
                 error.name === "AbortError"
@@ -125,12 +118,10 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
     return isMobile ? assets.intro : assets.introH;
   };
 
-  // Se for Firefox Mobile, não renderiza nada (o vídeo já foi pulado)
   if (isFirefoxMobile) {
     return null;
   }
 
-  // Se houver erro, mostra por 1 segundo e depois sai
   if (videoError) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
