@@ -25,8 +25,8 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
       const handleLoad = () => {
         setGifLoaded(true);
 
-        // Duração do GIF: 4 segundos
-        const estimatedDuration = 5000; // 4 segundos
+        // Duração do GIF:
+        const estimatedDuration = 5000; // 5 segundos
         setAnimationDuration(estimatedDuration);
 
         // Inicia o timer para finalizar a animação
@@ -64,7 +64,7 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
 
   // Seleciona o GIF apropriado baseado no dispositivo
   const getGifSource = () => {
-    return isMobile ? assets.introH : assets.introH;
+    return isMobile ? assets.intro : assets.introH;
   };
 
   if (gifError) {
