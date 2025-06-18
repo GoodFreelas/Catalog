@@ -216,7 +216,6 @@ const CatalogPage = () => {
                     >
                       <ProductCard
                         product={product}
-                        onViewDetails={handleProductView}
                         className={clsx({
                           "flex flex-row": viewMode === "list",
                         })}

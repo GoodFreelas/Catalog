@@ -7,13 +7,25 @@ const detectIsMobile = () =>
     navigator.userAgent.toLowerCase()
   );
 
+// Função para detectar Safari
+const detectIsSafari = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return (
+    userAgent.includes("safari") &&
+    !userAgent.includes("chrome") &&
+    !userAgent.includes("firefox")
+  );
+};
+
 const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const videoRef = useRef(null);
   const [videoError, setVideoError] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
   const [isFirefoxMobile, setIsFirefoxMobile] = useState(false);
-  const [isMobile, setIsMobile] = useState(detectIsMobile()); // detecta logo no início
+  const [isMobile, setIsMobile] = useState(detectIsMobile());
+  const [isSafari, setIsSafari] = useState(detectIsSafari());
+  const [retryCount, setRetryCount] = useState(0);
 
   // Detecta Firefox Mobile
   useEffect(() => {
@@ -21,12 +33,13 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
     const isFirefox = userAgent.includes("firefox");
     const mobileDetected = detectIsMobile();
     const firefoxMobileDetected = isFirefox && mobileDetected;
+    const safariDetected = detectIsSafari();
 
     setIsMobile(mobileDetected);
     setIsFirefoxMobile(firefoxMobileDetected);
+    setIsSafari(safariDetected);
 
     if (firefoxMobileDetected) {
-      console.log("Firefox Mobile detectado - pulando vídeo de introdução");
       setTimeout(() => {
         onEnd();
       }, 100);
@@ -39,12 +52,21 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
     const video = videoRef.current;
     if (video) {
       video.addEventListener("loadeddata", () => {
-        console.log("Vídeo carregado com sucesso");
         setVideoLoaded(true);
       });
 
+      video.addEventListener("loadedmetadata", () => {
+        // Tenta reproduzir assim que os metadados carregam
+        if (isSafari) {
+          attemptAutoplay();
+        }
+      });
+
       video.addEventListener("canplay", () => {
-        console.log("Vídeo pronto para reproduzir");
+        // Tenta reproduzir quando o vídeo pode ser reproduzido
+        if (!isSafari || retryCount < 2) {
+          attemptAutoplay();
+        }
       });
 
       video.addEventListener("error", (e) => {
@@ -55,37 +77,86 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         }, 1000);
       });
 
-      video.addEventListener("loadstart", () => {
-        console.log("Iniciando carregamento do vídeo");
-      });
-
       const attemptAutoplay = () => {
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log("Vídeo iniciado automaticamente");
-            })
-            .catch((error) => {
-              console.warn("Autoplay bloqueado:", error);
-              if (
-                error.name === "NotAllowedError" ||
-                error.name === "AbortError"
-              ) {
-                setNeedsUserInteraction(true);
-              } else {
-                setVideoError(true);
-                setTimeout(() => {
-                  onEnd();
-                }, 1000);
-              }
-            });
+        if (video.paused) {
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log("Autoplay funcionou!");
+                setNeedsUserInteraction(false);
+              })
+              .catch((error) => {
+                console.warn("Autoplay bloqueado:", error);
+                if (
+                  error.name === "NotAllowedError" ||
+                  error.name === "AbortError"
+                ) {
+                  setNeedsUserInteraction(true);
+
+                  // Para Safari, tenta novamente após um pequeno delay
+                  if (isSafari && retryCount < 3) {
+                    setTimeout(() => {
+                      setRetryCount((prev) => prev + 1);
+                      attemptAutoplay();
+                    }, 500);
+                  }
+                } else {
+                  setVideoError(true);
+                  setTimeout(() => {
+                    onEnd();
+                  }, 1000);
+                }
+              });
+          }
         }
       };
 
-      attemptAutoplay();
+      // Primeira tentativa de autoplay
+      if (video.readyState >= 3) {
+        // HAVE_FUTURE_DATA
+        attemptAutoplay();
+      }
     }
-  }, [onEnd, isFirefoxMobile]);
+  }, [onEnd, isFirefoxMobile, isSafari, retryCount]);
+
+  // Adiciona listeners para tentar autoplay em interações do usuário
+  useEffect(() => {
+    if (isSafari && needsUserInteraction) {
+      const handleUserInteraction = () => {
+        const video = videoRef.current;
+        if (video && video.paused) {
+          video
+            .play()
+            .then(() => {
+              setNeedsUserInteraction(false);
+              // Remove os listeners após sucesso
+              document.removeEventListener("touchstart", handleUserInteraction);
+              document.removeEventListener("click", handleUserInteraction);
+              document.removeEventListener("scroll", handleUserInteraction);
+            })
+            .catch(console.error);
+        }
+      };
+
+      // Adiciona múltiplos tipos de eventos para capturar qualquer interação
+      document.addEventListener("touchstart", handleUserInteraction, {
+        once: true,
+        passive: true,
+      });
+      document.addEventListener("click", handleUserInteraction, { once: true });
+      document.addEventListener("scroll", handleUserInteraction, {
+        once: true,
+        passive: true,
+      });
+
+      return () => {
+        document.removeEventListener("touchstart", handleUserInteraction);
+        document.removeEventListener("click", handleUserInteraction);
+        document.removeEventListener("scroll", handleUserInteraction);
+      };
+    }
+  }, [isSafari, needsUserInteraction]);
 
   const handleVideoEnd = () => {
     onEnd();
@@ -147,9 +218,11 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         muted
         playsInline
         webkit-playsinline="true"
-        preload="metadata"
+        preload="auto" // Mudado de "metadata" para "auto" para melhor suporte no Safari
         controls={false}
         crossOrigin="anonymous"
+        autoPlay // Adiciona o atributo autoPlay explicitamente
+        loop={false}
       >
         <source
           src={getVideoSource()}
@@ -162,14 +235,25 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
       {/* Botão de play para quando autoplay é bloqueado */}
       {needsUserInteraction && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <button
-            onClick={handlePlayClick}
-            className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-6 rounded-full transition-all duration-200"
-          >
-            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </button>
+          <div className="text-center">
+            <button
+              onClick={handlePlayClick}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-6 rounded-full transition-all duration-200 mb-4"
+            >
+              <svg
+                className="w-12 h-12"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </button>
+            {isSafari && (
+              <p className="text-white text-sm opacity-70">
+                Toque em qualquer lugar da tela para iniciar
+              </p>
+            )}
+          </div>
         </div>
       )}
 

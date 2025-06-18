@@ -52,11 +52,8 @@ const AppRouter = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Página inicial - redireciona para catálogo */}
-        <Route path="/" element={<Navigate to="/catalog" replace />} />
-
         {/* Catálogo de produtos */}
-        <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/" element={<CatalogPage />} />
 
         {/* Detalhes do produto */}
         <Route path="/product/:id" element={<ProductDetailPage />} />

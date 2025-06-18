@@ -163,7 +163,7 @@ const FilterModal = () => {
                   className={clsx(
                     "w-full text-left px-4 py-3 rounded-lg border transition-all",
                     localFilters.category === ""
-                      ? "border-primary-200 bg-primary-50 text-primary-700"
+                      ? "border-primary-200 bg-primary-50 text-white"
                       : "border-secondary-200 hover:border-secondary-300 text-secondary-700"
                   )}
                 >
@@ -184,7 +184,7 @@ const FilterModal = () => {
                     className={clsx(
                       "w-full text-left px-4 py-3 rounded-lg border transition-all",
                       localFilters.category === category
-                        ? "border-primary-200 bg-primary-50 text-primary-700"
+                        ? "border-primary-200 bg-primary-50 text-white"
                         : "border-secondary-200 hover:border-secondary-300 text-secondary-700"
                     )}
                   >
@@ -213,7 +213,7 @@ const FilterModal = () => {
                   "w-full text-left px-4 py-3 rounded-lg border transition-all",
                   localFilters.priceRange.min === null &&
                     localFilters.priceRange.max === null
-                    ? "border-primary-200 bg-primary-50 text-primary-700"
+                    ? "border-primary-200 bg-primary-50 text-white"
                     : "border-secondary-200 hover:border-secondary-300 text-secondary-700"
                 )}
               >
@@ -238,7 +238,7 @@ const FilterModal = () => {
                     className={clsx(
                       "w-full text-left px-4 py-3 rounded-lg border transition-all",
                       isSelected
-                        ? "border-primary-200 bg-primary-50 text-primary-700"
+                        ? "border-primary-200 bg-primary-50 text-white"
                         : "border-secondary-200 hover:border-secondary-300 text-secondary-700"
                     )}
                   >
@@ -266,7 +266,7 @@ const FilterModal = () => {
                 className={clsx(
                   "w-full text-left px-4 py-3 rounded-lg border transition-all",
                   localFilters.status === ""
-                    ? "border-primary-200 bg-primary-50 text-primary-700"
+                    ? "border-primary-200 bg-primary-50 text-white"
                     : "border-secondary-200 hover:border-secondary-300 text-secondary-700"
                 )}
               >
@@ -285,7 +285,7 @@ const FilterModal = () => {
                   className={clsx(
                     "w-full text-left px-4 py-3 rounded-lg border transition-all",
                     localFilters.status === value
-                      ? "border-primary-200 bg-primary-50 text-primary-700"
+                      ? "border-primary-200 bg-primary-50 text-white"
                       : "border-secondary-200 hover:border-secondary-300 text-secondary-700"
                   )}
                 >
@@ -322,7 +322,7 @@ const FilterModal = () => {
                     className={clsx(
                       "w-full text-left px-4 py-3 rounded-lg border transition-all",
                       isSelected
-                        ? "border-primary-200 bg-primary-50 text-primary-700"
+                        ? "border-primary-200 bg-primary-50 text-white"
                         : "border-secondary-200 hover:border-secondary-300 text-secondary-700"
                     )}
                   >
