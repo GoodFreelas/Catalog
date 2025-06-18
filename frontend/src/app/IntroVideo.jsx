@@ -7,197 +7,71 @@ const detectIsMobile = () =>
     navigator.userAgent.toLowerCase()
   );
 
-// Função para detectar Safari
-const detectIsSafari = () => {
-  const userAgent = navigator.userAgent.toLowerCase();
-  return (
-    userAgent.includes("safari") &&
-    !userAgent.includes("chrome") &&
-    !userAgent.includes("firefox")
-  );
-};
-
 const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
-  const videoRef = useRef(null);
-  const [videoError, setVideoError] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
-  const [isFirefoxMobile, setIsFirefoxMobile] = useState(false);
+  const imgRef = useRef(null);
+  const [gifError, setGifError] = useState(false);
+  const [gifLoaded, setGifLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(detectIsMobile());
-  const [isSafari, setIsSafari] = useState(detectIsSafari());
-  const [retryCount, setRetryCount] = useState(0);
-
-  // Detecta Firefox Mobile
-  useEffect(() => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isFirefox = userAgent.includes("firefox");
-    const mobileDetected = detectIsMobile();
-    const firefoxMobileDetected = isFirefox && mobileDetected;
-    const safariDetected = detectIsSafari();
-
-    setIsMobile(mobileDetected);
-    setIsFirefoxMobile(firefoxMobileDetected);
-    setIsSafari(safariDetected);
-
-    if (firefoxMobileDetected) {
-      setTimeout(() => {
-        onEnd();
-      }, 100);
-    }
-  }, [onEnd]);
+  const [animationDuration, setAnimationDuration] = useState(null);
 
   useEffect(() => {
-    if (isFirefoxMobile) return;
+    setIsMobile(detectIsMobile());
+  }, []);
 
-    const video = videoRef.current;
-    if (video) {
-      video.addEventListener("loadeddata", () => {
-        setVideoLoaded(true);
-      });
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img) {
+      // Handler para quando a imagem carrega
+      const handleLoad = () => {
+        setGifLoaded(true);
 
-      video.addEventListener("loadedmetadata", () => {
-        // Tenta reproduzir assim que os metadados carregam
-        if (isSafari) {
-          attemptAutoplay();
-        }
-      });
+        // Duração do GIF: 4 segundos
+        const estimatedDuration = 5000; // 4 segundos
+        setAnimationDuration(estimatedDuration);
 
-      video.addEventListener("canplay", () => {
-        // Tenta reproduzir quando o vídeo pode ser reproduzido
-        if (!isSafari || retryCount < 2) {
-          attemptAutoplay();
-        }
-      });
+        // Inicia o timer para finalizar a animação
+        const timer = setTimeout(() => {
+          onEnd();
+        }, estimatedDuration);
 
-      video.addEventListener("error", (e) => {
-        console.error("Erro ao carregar vídeo:", e);
-        setVideoError(true);
+        // Cleanup function para limpar o timer se o componente desmontar
+        return () => clearTimeout(timer);
+      };
+
+      // Handler para erros de carregamento
+      const handleError = (e) => {
+        console.error("Erro ao carregar GIF:", e);
+        setGifError(true);
         setTimeout(() => {
           onEnd();
         }, 1000);
-      });
-
-      const attemptAutoplay = () => {
-        if (video.paused) {
-          const playPromise = video.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                console.log("Autoplay funcionou!");
-                setNeedsUserInteraction(false);
-              })
-              .catch((error) => {
-                console.warn("Autoplay bloqueado:", error);
-                if (
-                  error.name === "NotAllowedError" ||
-                  error.name === "AbortError"
-                ) {
-                  setNeedsUserInteraction(true);
-
-                  // Para Safari, tenta novamente após um pequeno delay
-                  if (isSafari && retryCount < 3) {
-                    setTimeout(() => {
-                      setRetryCount((prev) => prev + 1);
-                      attemptAutoplay();
-                    }, 500);
-                  }
-                } else {
-                  setVideoError(true);
-                  setTimeout(() => {
-                    onEnd();
-                  }, 1000);
-                }
-              });
-          }
-        }
       };
 
-      // Primeira tentativa de autoplay
-      if (video.readyState >= 3) {
-        // HAVE_FUTURE_DATA
-        attemptAutoplay();
-      }
-    }
-  }, [onEnd, isFirefoxMobile, isSafari, retryCount]);
+      img.addEventListener("load", handleLoad);
+      img.addEventListener("error", handleError);
 
-  // Adiciona listeners para tentar autoplay em interações do usuário
-  useEffect(() => {
-    if (isSafari && needsUserInteraction) {
-      const handleUserInteraction = () => {
-        const video = videoRef.current;
-        if (video && video.paused) {
-          video
-            .play()
-            .then(() => {
-              setNeedsUserInteraction(false);
-              // Remove os listeners após sucesso
-              document.removeEventListener("touchstart", handleUserInteraction);
-              document.removeEventListener("click", handleUserInteraction);
-              document.removeEventListener("scroll", handleUserInteraction);
-            })
-            .catch(console.error);
-        }
-      };
-
-      // Adiciona múltiplos tipos de eventos para capturar qualquer interação
-      document.addEventListener("touchstart", handleUserInteraction, {
-        once: true,
-        passive: true,
-      });
-      document.addEventListener("click", handleUserInteraction, { once: true });
-      document.addEventListener("scroll", handleUserInteraction, {
-        once: true,
-        passive: true,
-      });
-
+      // Cleanup
       return () => {
-        document.removeEventListener("touchstart", handleUserInteraction);
-        document.removeEventListener("click", handleUserInteraction);
-        document.removeEventListener("scroll", handleUserInteraction);
+        img.removeEventListener("load", handleLoad);
+        img.removeEventListener("error", handleError);
       };
     }
-  }, [isSafari, needsUserInteraction]);
-
-  const handleVideoEnd = () => {
-    onEnd();
-  };
+  }, [onEnd, isMobile]);
 
   const handleSkip = () => {
     onSkip();
   };
 
-  const handlePlayClick = () => {
-    const video = videoRef.current;
-    if (video) {
-      video
-        .play()
-        .then(() => {
-          setNeedsUserInteraction(false);
-        })
-        .catch((error) => {
-          console.error("Erro ao reproduzir após interação:", error);
-          setVideoError(true);
-          setTimeout(() => {
-            onEnd();
-          }, 1000);
-        });
-    }
+  // Seleciona o GIF apropriado baseado no dispositivo
+  const getGifSource = () => {
+    return isMobile ? assets.introH : assets.introH;
   };
 
-  // Seleciona o vídeo apropriado baseado no dispositivo
-  const getVideoSource = () => {
-    return isMobile ? assets.intro : assets.introH;
-  };
-
-  if (isFirefoxMobile) {
-    return null;
-  }
-
-  if (videoError) {
+  if (gifError) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <p className="mb-4">Erro ao carregar vídeo</p>
+          <p className="mb-4">Erro ao carregar animação</p>
           <p className="text-sm opacity-70">Redirecionando...</p>
         </div>
       </div>
@@ -210,56 +84,22 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         isFinished ? "opacity-0" : "opacity-100"
       }`}
     >
-      {/* Vídeo */}
-      <video
-        ref={videoRef}
+      {/* GIF */}
+      <img
+        ref={imgRef}
+        src={getGifSource()}
+        alt="Intro Animation"
         className="w-full h-full object-cover"
-        onEnded={handleVideoEnd}
-        muted
-        playsInline
-        webkit-playsinline="true"
-        preload="auto" // Mudado de "metadata" para "auto" para melhor suporte no Safari
-        controls={false}
-        crossOrigin="anonymous"
-        autoPlay // Adiciona o atributo autoPlay explicitamente
-        loop={false}
-      >
-        <source
-          src={getVideoSource()}
-          type="video/mp4; codecs='avc1.42E01E, mp4a.40.2'"
-        />
-        <source src={getVideoSource()} type="video/mp4" />
-        Seu navegador não suporta vídeos HTML5.
-      </video>
-
-      {/* Botão de play para quando autoplay é bloqueado */}
-      {needsUserInteraction && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="text-center">
-            <button
-              onClick={handlePlayClick}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-6 rounded-full transition-all duration-200 mb-4"
-            >
-              <svg
-                className="w-12 h-12"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </button>
-            {isSafari && (
-              <p className="text-white text-sm opacity-70">
-                Toque em qualquer lugar da tela para iniciar
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+        style={{
+          maxWidth: "100%",
+          maxHeight: "100%",
+          objectFit: "cover",
+        }}
+      />
 
       {/* Loading indicator */}
-      {!videoLoaded && !videoError && !needsUserInteraction && (
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
+      {!gifLoaded && !gifError && (
+        <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex flex-col items-center space-y-4">
             <div className="flex space-x-2">
               <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
@@ -272,10 +112,37 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
                 style={{ animationDelay: "0.4s" }}
               ></div>
             </div>
-            <p className="text-white text-sm opacity-70">Carregando vídeo...</p>
+            <p className="text-white text-sm opacity-70">Carregando...</p>
           </div>
         </div>
       )}
+
+      {/* Progress bar opcional */}
+      {gifLoaded && animationDuration && (
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-64 max-w-[80%]">
+          <div className="w-full bg-white bg-opacity-20 rounded-full h-1">
+            <div
+              className="bg-white h-1 rounded-full transition-all ease-linear"
+              style={{
+                width: "100%",
+                animation: `progress ${animationDuration}ms linear`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* CSS para animação da progress bar */}
+      <style jsx>{`
+        @keyframes progress {
+          from {
+            width: 0%;
+          }
+          to {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 };
