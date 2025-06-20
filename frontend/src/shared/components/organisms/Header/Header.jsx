@@ -57,10 +57,6 @@ const Header = ({ onSearch, onFilterToggle }) => {
     // A SearchBar já atualiza o store diretamente
   };
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
   const handleLogoClick = () => {
     navigate("/");
   };
@@ -76,110 +72,75 @@ const Header = ({ onSearch, onFilterToggle }) => {
         )}
       >
         <div className="container mx-auto px-4">
-          {/* Layout Desktop */}
-          <div className="hidden md:flex items-center justify-between h-16 lg:h-18">
-            {/* Logo/Brand */}
-            <div className="flex items-center gap-3">
+          {/* Primeira linha: Logo + Carrinho (unificado para mobile e desktop) */}
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleLogoClick}
-                className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80"
+                className="transition-opacity duration-200 hover:opacity-80"
               >
-                <img src={assets.logo} alt="Logo" className="w-32 h-32" />
+                <img src={assets.logo} alt="Detcheler" className="w-32 h-32" />
               </button>
             </div>
 
-            {/* Barra de busca - Desktop */}
-            <div className="flex-1 max-w-lg mx-8">
-              <SearchBar
-                onSearch={handleSearch}
-                onFilterToggle={onFilterToggle}
-                placeholder="Buscar produtos..."
-                showSuggestions={true}
-              />
-            </div>
-
-            {/* Ações do header */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCartClick}
-                className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
-                style={{ willChange: "transform" }}
-              >
-                <AnimatedCart size={24} simplified={false} />
-                {totalItems > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
-                    {totalItems > 99 ? "99+" : totalItems}
-                  </div>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Layout Mobile */}
-          <div className="md:hidden">
-            {/* Primeira linha: Logo + Carrinho */}
-            <div className="flex items-center justify-between h-16">
-              {/* Logo */}
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleLogoClick}
-                  className="transition-opacity duration-200 hover:opacity-80"
-                >
-                  <img
-                    src={assets.logo}
-                    alt="Detcheler"
-                    className="w-32 h-32"
-                  />
-                </button>
-              </div>
-
-              {/* Carrinho - Versão simplificada para mobile */}
-              <button
-                onClick={handleCartClick}
-                className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
-                style={{ willChange: "transform" }}
-              >
-                <AnimatedCart size={28} simplified={true} />
-                {totalItems > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
-                    {totalItems > 99 ? "99+" : totalItems}
-                  </div>
-                )}
-              </button>
-            </div>
+            {/* Carrinho */}
+            <button
+              onClick={handleCartClick}
+              className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
+              style={{ willChange: "transform" }}
+            >
+              <AnimatedCart size={isMobile ? 28 : 24} simplified={isMobile} />
+              {totalItems > 0 && (
+                <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
+                  {totalItems > 99 ? "99+" : totalItems}
+                </div>
+              )}
+            </button>
           </div>
         </div>
 
         {/* Linha separadora 1 - Full width, fina e cor suave */}
         <div className="w-full h-px bg-gray-300"></div>
 
-        {/* Segunda seção: Subtítulos (só mobile) - ANIMAÇÃO BASEADA EM PROGRESSO */}
-        <div className="md:hidden">
-          <div className="container mx-auto px-4">
+        {/* Segunda seção: Subtítulos - ANIMAÇÃO BASEADA EM PROGRESSO (para ambos mobile e desktop) */}
+        <div className="container mx-auto px-4">
+          <div
+            className="px-1 overflow-hidden transition-all duration-300 ease-out"
+            style={{
+              height: `${(1 - scrollProgress) * (isMobile ? 82 : 92)}px`, // 82px mobile, 92px desktop
+              opacity: 1 - scrollProgress, // Fade out gradual
+              paddingTop: `${(1 - scrollProgress) * 16}px`,
+              paddingBottom: `${(1 - scrollProgress) * 16}px`,
+              transform: `translateY(${scrollProgress * -20}px)`, // Desliza para cima gradualmente
+            }}
+          >
             <div
-              className="px-1 overflow-hidden transition-all duration-300 ease-out"
               style={{
-                height: `${(1 - scrollProgress) * 70}px`, // 64px = h-16, diminui gradualmente
-                opacity: 1 - scrollProgress, // Fade out gradual
-                paddingTop: `${(1 - scrollProgress) * 16}px`, // py-4 = 16px
-                paddingBottom: `${(1 - scrollProgress) * 16}px`,
-                transform: `translateY(${scrollProgress * -20}px)`, // Desliza para cima gradualmente
+                opacity: 1 - scrollProgress * 1.2, // Titles desaparecem um pouco mais rápido
+                transform: `translateY(${scrollProgress * -10}px)`,
               }}
             >
               <div
-                style={{
-                  opacity: 1 - scrollProgress * 1.2, // Titles desaparecem um pouco mais rápido
-                  transform: `translateY(${scrollProgress * -10}px)`,
-                }}
+                className={clsx(
+                  "mx-auto", // Centralizado sempre
+                  isMobile ? "max-w-full" : "max-w-2xl lg:max-w-3xl"
+                )}
               >
                 <h3
-                  className="text-xs text-secondary-600 text-left mt-2"
+                  className={clsx(
+                    "text-secondary-600 text-left mt-2",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}
                   style={{ fontFamily: "Mona Sans, sans-serif" }}
                 >
                   Buenas, Detcheler!
                 </h3>
                 <h2
-                  className="text-2xl font-bold text-secondary-900 text-left"
+                  className={clsx(
+                    "font-bold text-secondary-900 text-left",
+                    isMobile ? "text-2xl" : "text-3xl lg:text-4xl"
+                  )}
                   style={{
                     fontFamily: "Rondal, Arial, sans-serif",
                     fontWeight: 900,
@@ -192,15 +153,25 @@ const Header = ({ onSearch, onFilterToggle }) => {
           </div>
         </div>
 
-        {/* Barra de busca - Mobile - AJUSTE GRADUAL DO PADDING */}
-        <div className="md:hidden">
-          <div className="container mx-auto px-4 mb-4">
+        {/* Barra de busca - AJUSTE GRADUAL DO PADDING (para ambos mobile e desktop) */}
+        <div
+          className="container mx-auto px-4"
+          style={{
+            marginBottom: `${16 * (1 - scrollProgress)}px`, // mb-4 (16px) que vai para 0
+          }}
+        >
+          <div
+            className="transition-all duration-300 ease-out"
+            style={{
+              paddingTop: `${8 + scrollProgress * 8}px`, // Vai de 8px (mais perto) para 16px
+              paddingBottom: `${12 + scrollProgress * 4}px`, // Vai de 12px para 16px
+            }}
+          >
             <div
-              className="px-0 transition-all duration-300 ease-out"
-              style={{
-                paddingTop: `${16 + scrollProgress * 2}px`, // Vai de 16px para 32px
-                paddingBottom: `${12 + scrollProgress * 1}px`, // Vai de 12px para 16px
-              }}
+              className={clsx(
+                "mx-auto", // Centralizado sempre
+                isMobile ? "max-w-full" : "max-w-2xl lg:max-w-3xl"
+              )}
             >
               <SearchBar
                 onSearch={handleSearch}
@@ -213,11 +184,11 @@ const Header = ({ onSearch, onFilterToggle }) => {
         </div>
 
         {/* Linha separadora 2 - Full width, fina e cor suave */}
-        <div className="w-full h-px bg-gray-300 md:hidden"></div>
+        <div className="w-full h-px bg-gray-300"></div>
 
         {/* Menu mobile overlay */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-300 bg-white/95 backdrop-blur-sm">
+        {mobileMenuOpen && isMobile && (
+          <div className="border-t border-gray-300 bg-white/95 backdrop-blur-sm">
             <div className="container mx-auto px-4 py-4">
               <div className="space-y-4">
                 <div className="text-sm text-secondary-600">
@@ -230,9 +201,9 @@ const Header = ({ onSearch, onFilterToggle }) => {
       </header>
 
       {/* Overlay para fechar menu mobile */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/50 z-30"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
