@@ -1,22 +1,59 @@
 import { useState } from "react";
-import { ShoppingCart, ImageIcon } from "lucide-react";
+import { ShoppingCart, Eye, Heart, ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
 import Button from "../../atoms/Button/Button";
 import { useCartStore } from "../../../../core/stores/cartStore";
-import { formatCurrency } from "../../../../core/utils/formatters";
+import { useUIStore } from "../../../../core/stores/uiStore";
+import {
+  formatCurrency,
+  truncateText,
+} from "../../../../core/utils/formatters";
 import { assets } from "../../../../assets";
 
-const ProductCard = ({ product, className, ...props }) => {
+const ProductCard = ({
+  product,
+  onViewDetails,
+  onAddToWishlist,
+  className,
+  ...props
+}) => {
+  const navigate = useNavigate();
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   const { addItem, getItemQuantity, isInCart } = useCartStore();
+  const { openModal } = useUIStore();
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
     addItem(product);
+  };
+
+  const handleViewDetails = (e) => {
+    e.stopPropagation();
+    if (onViewDetails) {
+      onViewDetails(product);
+    } else {
+      // Abrir modal por padrão
+      openModal("productDetail", { productId: product.id });
+    }
+  };
+
+  const handleCardClick = () => {
+    // Abrir modal de detalhes diretamente
+    if (onViewDetails) {
+      onViewDetails(product);
+    } else {
+      openModal("productDetail", { productId: product.id });
+    }
+  };
+
+  const handleAddToWishlist = (e) => {
+    e.stopPropagation();
+    onAddToWishlist?.(product);
   };
 
   const currentQuantity = getItemQuantity(product.id);
@@ -39,13 +76,14 @@ const ProductCard = ({ product, className, ...props }) => {
       className={clsx(
         "group relative bg-white rounded-xl border border-secondary-500",
         "shadow-soft hover:shadow-medium transition-all duration-300",
-        "overflow-hidden",
-        "h-auto flex flex-col",
+        "overflow-hidden cursor-pointer",
+        "h-auto flex flex-col", // mudou de altura fixa para auto
         {
           "opacity-75": !isActive,
         },
         className
       )}
+      onClick={handleCardClick}
       {...props}
     >
       {/* Badge de status */}
@@ -66,7 +104,7 @@ const ProductCard = ({ product, className, ...props }) => {
         </div>
       )}
 
-      {/* Container da imagem */}
+      {/* Container da imagem - reduzido para proporção 1:1 */}
       <div
         className="relative w-full aspect-square overflow-hidden flex-shrink-0 p-2 bg-center bg-no-repeat"
         style={{
@@ -101,9 +139,11 @@ const ProductCard = ({ product, className, ...props }) => {
             <ImageIcon className="w-8 h-8 text-secondary-400" />
           </div>
         )}
+
+        {/* Overlay removido - agora abre direto o modal ao clicar no card */}
       </div>
 
-      {/* Conteúdo do card */}
+      {/* Conteúdo do card - otimizado para mobile */}
       <div className="p-3 flex flex-col flex-1 justify-between">
         <div className="space-y-2">
           {/* Nome do produto */}
@@ -119,7 +159,7 @@ const ProductCard = ({ product, className, ...props }) => {
             )}
           </div>
 
-          {/* Descrição */}
+          {/* Descrição - mais compacta */}
           {product.descricao && (
             <p className="text-xs text-secondary-600 line-clamp-2 min-h-[2rem]">
               {product.descricao}
@@ -143,7 +183,7 @@ const ProductCard = ({ product, className, ...props }) => {
           </div>
         </div>
 
-        {/* Botão de comprar/carrinho */}
+        {/* Botão de comprar/carrinho - compacto */}
         <Button
           variant={isInCart(product.id) ? "success" : "primary"}
           size="sm"
