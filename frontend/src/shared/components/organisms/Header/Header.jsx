@@ -6,7 +6,8 @@ import SearchBar from "../../molecules/SearchBar/SearchBar";
 import { useCartStore } from "../../../../core/stores/cartStore";
 import { useUIStore } from "../../../../core/stores/uiStore";
 import { assets } from "../../../../assets";
-import AnimatedCart from "../../../../features/cart/components/CartIcon/CartIcon";
+// Removido o import do AnimatedCart
+// import AnimatedCart from "../../../../features/cart/components/CartIcon/CartIcon";
 
 const Header = ({ onSearch, onFilterToggle }) => {
   const navigate = useNavigate();
@@ -90,7 +91,19 @@ const Header = ({ onSearch, onFilterToggle }) => {
               className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
               style={{ willChange: "transform" }}
             >
-              <AnimatedCart size={isMobile ? 28 : 24} simplified={isMobile} />
+              {/* Substituído AnimatedCart por GIF */}
+              <img
+                src={assets.Compras}
+                alt="Carrinho de compras"
+                className={clsx(
+                  "object-contain",
+                  isMobile ? "w-7 h-7" : "w-6 h-6"
+                )}
+                style={{
+                  width: isMobile ? "28px" : "24px",
+                  height: isMobile ? "28px" : "24px",
+                }}
+              />
               {totalItems > 0 && (
                 <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
                   {totalItems > 99 ? "99+" : totalItems}

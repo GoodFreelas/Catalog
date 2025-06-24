@@ -272,12 +272,14 @@ const SearchBar = ({
             }
           )}
         >
-          {/* Ícone de busca */}
+          {/* Ícone de busca substituído por assets.Lupa */}
           <div className="absolute left-3 flex items-center pointer-events-none">
-            <Search
+            <img
+              src={assets.Lupa}
+              alt="Buscar"
               className={clsx(
-                "w-5 h-5 transition-colors duration-200",
-                isFocused ? "text-primary-500" : "text-secondary-900"
+                "w-5 h-5 object-contain transition-opacity duration-200",
+                isFocused ? "opacity-80" : "opacity-100"
               )}
             />
           </div>
@@ -372,7 +374,7 @@ const SearchBar = ({
         />
       )}
 
-      {/* Indicador de busca ativa */}
+      {/* Indicador de busca ativa - também usando assets.Lupa */}
       <AnimatePresence>
         {searchTerm && !showSuggestionsDropdown && (
           <motion.div
@@ -383,8 +385,12 @@ const SearchBar = ({
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-primary-600" />
-                <span className="text-sm text-white">
+                <img
+                  src={assets.Lupa}
+                  alt="Buscar"
+                  className="w-4 h-4 object-contain"
+                />
+                <span className="text-sm text-primary-600">
                   Buscando por: <strong>"{searchTerm}"</strong>
                 </span>
               </div>

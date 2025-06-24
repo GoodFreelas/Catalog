@@ -10,6 +10,9 @@ import introH from './introH.gif'
 import whats from './whats.svg'
 import trash from './trash.svg'
 import funil from './funil.svg'
+import Compras from './Compras.gif'
+import Lupa from './Lupa.gif'
+import Voltar from './Voltar.gif'
 
 export const assets = {
   logo,
@@ -23,5 +26,8 @@ export const assets = {
   whats,
   trash,
   funil,
-  introH
+  introH,
+  Compras,
+  Lupa,
+  Voltar
 }
