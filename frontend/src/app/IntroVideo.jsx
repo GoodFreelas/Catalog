@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { assets } from "../assets";
 
 // Função para detectar se é mobile
@@ -7,72 +7,182 @@ const detectIsMobile = () =>
     navigator.userAgent.toLowerCase()
   );
 
+// Função para detectar navegadores lentos/limitados
+const detectSlowBrowser = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return (
+    userAgent.includes("instagram") ||
+    userAgent.includes("fbav") ||
+    userAgent.includes("twitter") ||
+    userAgent.includes("snapchat") ||
+    userAgent.includes("tiktok") ||
+    // Detecta dispositivos com pouca memória
+    navigator.deviceMemory < 4 ||
+    // Detecta conexão lenta
+    (navigator.connection &&
+      navigator.connection.effectiveType === "slow-2g") ||
+    (navigator.connection && navigator.connection.effectiveType === "2g")
+  );
+};
+
 const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const imgRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const loadTimeoutRef = useRef(null);
+
   const [gifError, setGifError] = useState(false);
   const [gifLoaded, setGifLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(detectIsMobile());
+  const [isSlowBrowser, setIsSlowBrowser] = useState(detectSlowBrowser());
   const [animationDuration, setAnimationDuration] = useState(null);
+  const [skipIntro, setSkipIntro] = useState(false);
+
+  // Duração reduzida para navegadores lentos
+  const NORMAL_DURATION = 5000; // 5 segundos
+  const FAST_DURATION = 2500; // 2.5 segundos para navegadores lentos
+  const MAX_LOAD_TIME = 3000; // 3 segundos máximo para carregar
 
   useEffect(() => {
     setIsMobile(detectIsMobile());
-  }, []);
+    setIsSlowBrowser(detectSlowBrowser());
+
+    // Em navegadores muito lentos, pula direto
+    if (
+      detectSlowBrowser() &&
+      navigator.connection?.effectiveType === "slow-2g"
+    ) {
+      setSkipIntro(true);
+      setTimeout(onEnd, 500);
+    }
+  }, [onEnd]);
+
+  // Timeout de segurança para carregamento
+  useEffect(() => {
+    loadTimeoutRef.current = setTimeout(() => {
+      if (!gifLoaded && !gifError) {
+        console.warn("GIF demorou muito para carregar, pulando intro");
+        setGifError(true);
+        onEnd();
+      }
+    }, MAX_LOAD_TIME);
+
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
+  }, [gifLoaded, gifError, onEnd]);
+
+  const handleGifLoad = useCallback(() => {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    setGifLoaded(true);
+
+    // Duração adaptada baseada no tipo de navegador
+    const duration = isSlowBrowser ? FAST_DURATION : NORMAL_DURATION;
+    setAnimationDuration(duration);
+
+    // Timer principal para finalizar
+    timeoutRef.current = setTimeout(() => {
+      onEnd();
+    }, duration);
+  }, [isSlowBrowser, onEnd]);
+
+  const handleGifError = useCallback(
+    (e) => {
+      console.error("Erro ao carregar GIF:", e);
+
+      // Limpa timeouts
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      setGifError(true);
+      // Delay menor para erro
+      setTimeout(() => {
+        onEnd();
+      }, 500);
+    },
+    [onEnd]
+  );
 
   useEffect(() => {
     const img = imgRef.current;
-    if (img) {
-      // Handler para quando a imagem carrega
-      const handleLoad = () => {
-        setGifLoaded(true);
+    if (img && !skipIntro) {
+      // Preload da imagem para verificar se existe
+      const preloadImg = new Image();
 
-        // Duração do GIF:
-        const estimatedDuration = 5000; // 5 segundos
-        setAnimationDuration(estimatedDuration);
-
-        // Inicia o timer para finalizar a animação
-        const timer = setTimeout(() => {
-          onEnd();
-        }, estimatedDuration);
-
-        // Cleanup function para limpar o timer se o componente desmontar
-        return () => clearTimeout(timer);
+      preloadImg.onload = () => {
+        // Se preload funcionou, carrega no elemento principal
+        img.src = getGifSource();
       };
 
-      // Handler para erros de carregamento
-      const handleError = (e) => {
-        console.error("Erro ao carregar GIF:", e);
-        setGifError(true);
-        setTimeout(() => {
-          onEnd();
-        }, 1000);
+      preloadImg.onerror = (e) => {
+        handleGifError(e);
       };
 
-      img.addEventListener("load", handleLoad);
-      img.addEventListener("error", handleError);
+      // Inicia preload
+      preloadImg.src = getGifSource();
 
-      // Cleanup
+      // Event listeners para o elemento principal
+      img.addEventListener("load", handleGifLoad);
+      img.addEventListener("error", handleGifError);
+
       return () => {
-        img.removeEventListener("load", handleLoad);
-        img.removeEventListener("error", handleError);
+        img.removeEventListener("load", handleGifLoad);
+        img.removeEventListener("error", handleGifError);
       };
     }
-  }, [onEnd, isMobile]);
+  }, [skipIntro, handleGifLoad, handleGifError]);
 
-  const handleSkip = () => {
+  // Cleanup dos timeouts
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSkip = useCallback(() => {
+    // Limpa todos os timeouts
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
     onSkip();
-  };
+  }, [onSkip]);
 
   // Seleciona o GIF apropriado baseado no dispositivo
   const getGifSource = () => {
     return isMobile ? assets.intro : assets.introH;
   };
 
+  // Se deve pular o intro completamente
+  if (skipIntro) {
+    return null;
+  }
+
+  // Tela de erro melhorada
   if (gifError) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
         <div className="text-white text-center">
-          <p className="mb-4">Erro ao carregar animação</p>
-          <p className="text-sm opacity-70">Redirecionando...</p>
+          <div className="mb-4">
+            <div className="w-12 h-12 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+          </div>
+          <p className="mb-2">Carregando experiência...</p>
+          <p className="text-sm opacity-70">Aguarde um momento</p>
         </div>
       </div>
     );
@@ -84,40 +194,50 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         isFinished ? "opacity-0" : "opacity-100"
       }`}
     >
-      {/* GIF */}
+      {/* GIF com otimizações */}
       <img
         ref={imgRef}
-        src={getGifSource()}
         alt="Intro Animation"
         className="w-full h-full object-cover"
         style={{
           maxWidth: "100%",
           maxHeight: "100%",
           objectFit: "cover",
+          // Otimizações para performance
+          imageRendering: isMobile ? "optimizeSpeed" : "auto",
+          willChange: "auto",
         }}
+        // Atributos para melhor performance
+        loading="eager"
+        decoding="sync"
+        onLoad={handleGifLoad}
+        onError={handleGifError}
       />
 
-      {/* Loading indicator */}
+      {/* Loading indicator melhorado */}
       {!gifLoaded && !gifError && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="flex flex-col items-center space-y-4">
-            <div className="flex space-x-2">
-              <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
-              <div
-                className="w-3 h-3 bg-white rounded-full animate-pulse"
-                style={{ animationDelay: "0.2s" }}
-              ></div>
-              <div
-                className="w-3 h-3 bg-white rounded-full animate-pulse"
-                style={{ animationDelay: "0.4s" }}
-              ></div>
-            </div>
-            <p className="text-white text-sm opacity-70">Carregando...</p>
+            {/* Loading spinner mais suave */}
+            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-white text-sm opacity-70">
+              {isSlowBrowser ? "Otimizando..." : "Carregando..."}
+            </p>
+
+            {/* Botão de pular para navegadores lentos */}
+            {isSlowBrowser && (
+              <button
+                onClick={handleSkip}
+                className="mt-4 px-4 py-2 bg-white bg-opacity-20 text-white text-sm rounded-full hover:bg-opacity-30 transition-all duration-200"
+              >
+                Pular Intro
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Progress bar opcional */}
+      {/* Progress bar adaptada */}
       {gifLoaded && animationDuration && (
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-64 max-w-[80%]">
           <div className="w-full bg-white bg-opacity-20 rounded-full h-1">
@@ -129,10 +249,20 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
               }}
             />
           </div>
+
+          {/* Botão de pular sempre visível em mobile */}
+          {isMobile && (
+            <button
+              onClick={handleSkip}
+              className="absolute -top-12 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-white bg-opacity-20 text-white text-xs rounded-full hover:bg-opacity-30 transition-all duration-200"
+            >
+              Pular
+            </button>
+          )}
         </div>
       )}
 
-      {/* CSS para animação da progress bar */}
+      {/* CSS otimizado */}
       <style jsx>{`
         @keyframes progress {
           from {
@@ -141,6 +271,13 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
           to {
             width: 100%;
           }
+        }
+
+        /* Otimizações para performance */
+        img {
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
       `}</style>
     </div>
