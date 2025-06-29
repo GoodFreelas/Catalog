@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { assets } from "../assets";
 
 // Função para detectar se é mobile
@@ -8,153 +8,126 @@ const detectIsMobile = () =>
   );
 
 const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
-  const mountedRef = useRef(true);
-  const hasEndedRef = useRef(false);
-
   const [isMobile] = useState(detectIsMobile());
+
+  // Estados que sempre resetam
   const [progress, setProgress] = useState(0);
-  const [isActive, setIsActive] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(isMobile ? 3 : 5);
+  const [hasFinished, setHasFinished] = useState(false);
 
-  // Duração fixa e confiável
-  const INTRO_DURATION = isMobile ? 3000 : 4000; // 3s mobile, 4s desktop
-  const PROGRESS_INTERVAL = 50; // Atualiza progress a cada 50ms
+  const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
 
-  // Função que sempre funciona - baseada apenas em tempo
-  const endIntro = useCallback(() => {
-    if (hasEndedRef.current || !mountedRef.current) return;
+  const DURATION = isMobile ? 3000 : 5000;
 
-    hasEndedRef.current = true;
-    console.log("Finalizando intro");
+  // Função para finalizar (só executa uma vez por instância)
+  const finish = () => {
+    if (hasFinished) return;
+
+    console.log("🏁 Finalizando intro");
+    setHasFinished(true);
+
+    // Limpa timers
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
     onEnd();
-  }, [onEnd]);
-
-  // Sistema de progress baseado em tempo (não depende do GIF)
-  useEffect(() => {
-    if (!isActive) return;
-
-    const startTime = Date.now();
-
-    const progressTimer = setInterval(() => {
-      if (!mountedRef.current || hasEndedRef.current) {
-        clearInterval(progressTimer);
-        return;
-      }
-
-      const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / INTRO_DURATION) * 100, 100);
-
-      setProgress(newProgress);
-
-      // Quando completa, finaliza
-      if (newProgress >= 100) {
-        clearInterval(progressTimer);
-        endIntro();
-      }
-    }, PROGRESS_INTERVAL);
-
-    // Timeout de segurança
-    const safetyTimeout = setTimeout(() => {
-      clearInterval(progressTimer);
-      endIntro();
-    }, INTRO_DURATION + 500);
-
-    return () => {
-      clearInterval(progressTimer);
-      clearTimeout(safetyTimeout);
-    };
-  }, [endIntro, isActive, INTRO_DURATION]);
-
-  // Cleanup no unmount
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const handleSkip = useCallback(() => {
-    if (hasEndedRef.current) return;
-
-    console.log("Skip manual");
-    setIsActive(false);
-    hasEndedRef.current = true;
-    onSkip();
-  }, [onSkip]);
-
-  // Seleciona o GIF
-  const getGifSource = () => {
-    return isMobile ? assets.intro : assets.introH;
   };
 
+  // Effect principal - sempre recomeça do zero
+  useEffect(() => {
+    console.log("🚀 Intro montado - iniciando do zero");
+
+    // Força reset de todos os estados
+    setProgress(0);
+    setTimeLeft(isMobile ? 3 : 5);
+    setHasFinished(false);
+
+    // Pequeno delay para garantir que o reset aconteceu
+    const initDelay = setTimeout(() => {
+      const startTime = Date.now();
+
+      console.log("⏰ Timer iniciado");
+
+      // Timer de progresso
+      intervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const newProgress = Math.min((elapsed / DURATION) * 100, 100);
+        const newTimeLeft = Math.ceil((DURATION - elapsed) / 1000);
+
+        setProgress(newProgress);
+        setTimeLeft(Math.max(0, newTimeLeft));
+
+        if (newProgress >= 100) {
+          finish();
+        }
+      }, 100);
+
+      // Timeout de segurança
+      timeoutRef.current = setTimeout(() => {
+        console.log("⏰ Timeout de segurança");
+        finish();
+      }, DURATION + 500);
+    }, 50); // 50ms de delay para garantir reset
+
+    // Cleanup
+    return () => {
+      console.log("🧹 Limpando timers");
+      clearTimeout(initDelay);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []); // Array vazio - mas componente é re-montado pela key
+
+  // Handler para skip
+  const handleSkip = () => {
+    console.log("⏭️ Skip clicado");
+    finish();
+    if (onSkip && onSkip !== onEnd) {
+      onSkip();
+    }
+  };
+
+  // Se já terminou ou foi marcado como finalizado pelo parent, não renderiza
+  if (isFinished || hasFinished) {
+    return null;
+  }
+
   return (
-    <div
-      className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-300 ${
-        isFinished ? "opacity-0" : "opacity-100"
-      }`}
-    >
-      {/* GIF - carrega em background, mas não dependemos dele */}
+    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+      {/* GIF */}
       <img
-        src={getGifSource()}
+        src={isMobile ? assets.intro : assets.introH}
         alt="Intro Animation"
         className="w-full h-full object-cover"
         style={{
           maxWidth: "100%",
           maxHeight: "100%",
           objectFit: "cover",
-          opacity: 0.9, // Pequena transparência para suavizar loops
         }}
         loading="eager"
-        onError={() => console.log("GIF erro (ok, continuamos)")}
-        onLoad={() => console.log("GIF carregado (ok)")}
       />
 
-      {/* Overlay semi-transparente para suavizar qualquer problema do GIF */}
-      <div className="absolute inset-0 bg-black bg-opacity-10"></div>
-
-      {/* Progress bar confiável */}
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-64 max-w-[80%] z-10">
-        <div className="w-full bg-white bg-opacity-20 rounded-full h-1 mb-4">
+      {/* Progress bar */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-80 max-w-[90%]">
+        <div className="w-full bg-white bg-opacity-20 rounded-full h-2 mb-3">
           <div
-            className="bg-white h-1 rounded-full transition-all ease-linear"
-            style={{
-              width: `${progress}%`,
-              transition: "width 0.1s ease-out",
-            }}
+            className="bg-white h-2 rounded-full transition-all duration-100"
+            style={{ width: `${progress}%` }}
           />
         </div>
-
-        {/* Indicador de tempo restante */}
-        <div className="text-center">
-          <p className="text-white text-xs opacity-60">
-            {Math.ceil(
-              (INTRO_DURATION - (progress * INTRO_DURATION) / 100) / 1000
-            )}
-            s
-          </p>
-        </div>
+        <p className="text-white text-center text-sm opacity-80">
+          {timeLeft}s restantes
+        </p>
       </div>
 
-      {/* Botão de skip sempre visível */}
+      {/* Botão skip */}
       <button
         onClick={handleSkip}
-        className="absolute top-6 right-6 px-4 py-2 bg-white bg-opacity-25 hover:bg-opacity-40 text-white text-sm font-medium rounded-full transition-all duration-200 z-10 border border-white border-opacity-20"
+        className="absolute top-6 right-6 px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-sm rounded-full transition-opacity duration-200"
       >
         Pular
       </button>
-
-      {/* Loading indicator sutil */}
-      <div className="absolute top-6 left-6 z-10">
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 bg-white bg-opacity-60 rounded-full animate-pulse"></div>
-          <div
-            className="w-2 h-2 bg-white bg-opacity-60 rounded-full animate-pulse"
-            style={{ animationDelay: "0.2s" }}
-          ></div>
-          <div
-            className="w-2 h-2 bg-white bg-opacity-60 rounded-full animate-pulse"
-            style={{ animationDelay: "0.4s" }}
-          ></div>
-        </div>
-      </div>
     </div>
   );
 };
