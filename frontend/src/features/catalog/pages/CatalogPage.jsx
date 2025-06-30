@@ -67,7 +67,6 @@ const CatalogPage = () => {
 
       // Configurar timeout de 5 segundos
       reloadTimeoutRef.current = setTimeout(() => {
-        console.log("API parece estar dormindo, preparando para recarregar...");
         setShowReloadMessage(true);
 
         // Iniciar countdown
@@ -80,7 +79,6 @@ const CatalogPage = () => {
 
           if (timeLeft <= 0) {
             clearInterval(countdownIntervalRef.current);
-            console.log("Recarregando página para acordar a API...");
             setHasAutoReloaded(true);
             window.location.reload();
           }
@@ -272,37 +270,6 @@ const CatalogPage = () => {
               exit={{ opacity: 0, y: -20 }}
               className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <RefreshCw className="w-5 h-5 text-yellow-600 animate-spin" />
-                  <div>
-                    <p className="text-sm font-medium text-yellow-800">
-                      API está acordando...
-                    </p>
-                    <p className="text-xs text-yellow-600">
-                      Recarregando automaticamente em {countdown} segundos
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleManualReload}
-                    className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
-                  >
-                    Recarregar agora
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={cancelAutoReload}
-                    className="text-yellow-700 hover:bg-yellow-100"
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
