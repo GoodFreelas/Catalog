@@ -390,7 +390,7 @@ const SearchBar = ({
                   alt="Buscar"
                   className="w-4 h-4 object-contain"
                 />
-                <span className="text-sm text-primary-600">
+                <span className="text-sm text-white">
                   Buscando por: <strong>"{searchTerm}"</strong>
                 </span>
               </div>

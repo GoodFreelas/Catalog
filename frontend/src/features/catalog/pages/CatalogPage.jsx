@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Grid,
   List,
@@ -7,6 +7,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -23,6 +24,15 @@ const CatalogPage = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [page, setPage] = useState(1);
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Estados para controle de auto-reload
+  const [loadingStartTime, setLoadingStartTime] = useState(null);
+  const [showReloadMessage, setShowReloadMessage] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const [hasAutoReloaded, setHasAutoReloaded] = useState(false);
+
+  const reloadTimeoutRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
 
   const { filters, searchTerm, isMobile, openModal, setLoading, clearSearch } =
     useUIStore();
@@ -46,6 +56,82 @@ const CatalogPage = () => {
       toast.error("Erro ao carregar produtos. Tente novamente.");
     },
   });
+
+  // Controle de auto-reload quando API está dormindo
+  useEffect(() => {
+    if (isLoading && !hasAutoReloaded) {
+      // Marcar quando começou a carregar
+      if (!loadingStartTime) {
+        setLoadingStartTime(Date.now());
+      }
+
+      // Configurar timeout de 5 segundos
+      reloadTimeoutRef.current = setTimeout(() => {
+        console.log("API parece estar dormindo, preparando para recarregar...");
+        setShowReloadMessage(true);
+
+        // Iniciar countdown
+        let timeLeft = 5;
+        setCountdown(timeLeft);
+
+        countdownIntervalRef.current = setInterval(() => {
+          timeLeft -= 1;
+          setCountdown(timeLeft);
+
+          if (timeLeft <= 0) {
+            clearInterval(countdownIntervalRef.current);
+            console.log("Recarregando página para acordar a API...");
+            setHasAutoReloaded(true);
+            window.location.reload();
+          }
+        }, 1000);
+      }, 5000);
+    } else if (!isLoading) {
+      // Limpar timeouts quando parar de carregar
+      if (reloadTimeoutRef.current) {
+        clearTimeout(reloadTimeoutRef.current);
+        reloadTimeoutRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+
+      setLoadingStartTime(null);
+      setShowReloadMessage(false);
+      setCountdown(5);
+    }
+
+    // Cleanup
+    return () => {
+      if (reloadTimeoutRef.current) {
+        clearTimeout(reloadTimeoutRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [isLoading, hasAutoReloaded, loadingStartTime]);
+
+  // Marcar que já fez auto-reload no sessionStorage para evitar loops
+  useEffect(() => {
+    const hasReloaded = sessionStorage.getItem("hasAutoReloaded");
+    if (hasReloaded === "true") {
+      setHasAutoReloaded(true);
+      // Limpar flag após 30 segundos
+      setTimeout(() => {
+        sessionStorage.removeItem("hasAutoReloaded");
+        setHasAutoReloaded(false);
+      }, 30000);
+    }
+  }, []);
+
+  // Marcar no sessionStorage antes de recarregar
+  useEffect(() => {
+    if (hasAutoReloaded) {
+      sessionStorage.setItem("hasAutoReloaded", "true");
+    }
+  }, [hasAutoReloaded]);
 
   // Atualizar loading global
   useEffect(() => {
@@ -86,6 +172,24 @@ const CatalogPage = () => {
 
   const handleClearSearch = () => {
     clearSearch();
+  };
+
+  const handleManualReload = () => {
+    setHasAutoReloaded(true);
+    window.location.reload();
+  };
+
+  const cancelAutoReload = () => {
+    if (reloadTimeoutRef.current) {
+      clearTimeout(reloadTimeoutRef.current);
+      reloadTimeoutRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setShowReloadMessage(false);
+    setCountdown(5);
   };
 
   // Estados de carregamento e erro
@@ -159,6 +263,50 @@ const CatalogPage = () => {
           </div>
         </div>
 
+        {/* Mensagem de auto-reload */}
+        <AnimatePresence>
+          {showReloadMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="w-5 h-5 text-yellow-600 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800">
+                      API está acordando...
+                    </p>
+                    <p className="text-xs text-yellow-600">
+                      Recarregando automaticamente em {countdown} segundos
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleManualReload}
+                    className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                  >
+                    Recarregar agora
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={cancelAutoReload}
+                    className="text-yellow-700 hover:bg-yellow-100"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Loading state */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -167,6 +315,11 @@ const CatalogPage = () => {
               <span className="text-secondary-600">
                 {searchTerm ? "Buscando produtos..." : "Carregando produtos..."}
               </span>
+              {loadingStartTime && !showReloadMessage && (
+                <span className="text-xs text-secondary-500">
+                  ({Math.floor((Date.now() - loadingStartTime) / 1000)}s)
+                </span>
+              )}
             </div>
           </div>
         )}

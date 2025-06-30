@@ -1,37 +1,65 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, X } from "lucide-react";
 import clsx from "clsx";
 
 import SearchBar from "../../molecules/SearchBar/SearchBar";
+import Button from "../../atoms/Button/Button";
 import { useCartStore } from "../../../../core/stores/cartStore";
 import { useUIStore } from "../../../../core/stores/uiStore";
+import { useDebounce } from "../../../../core/hooks/useDebounce";
 import { assets } from "../../../../assets";
-// Removido o import do AnimatedCart
-// import AnimatedCart from "../../../../features/cart/components/CartIcon/CartIcon";
 
 const Header = ({ onSearch, onFilterToggle }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [showHeaderSearch, setShowHeaderSearch] = useState(false);
+  const [headerSearchValue, setHeaderSearchValue] = useState("");
 
   const { openCart, getTotalItems } = useCartStore();
-  const { isMobile, setIsMobile } = useUIStore();
+  const { isMobile, setIsMobile, searchTerm, setSearchTerm } = useUIStore();
 
   const totalItems = getTotalItems();
+
+  // Debounce para a busca do header
+  const debouncedHeaderSearch = useDebounce(headerSearchValue, 300);
 
   // Detectar scroll com progresso gradual
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      // Progresso de 0 a 1 baseado em uma distância de 80px
-      const maxScroll = 80;
+      // Progresso de 0 a 1 baseado em uma distância de 120px (aumentado para dar mais espaço)
+      const maxScroll = 120;
       const progress = Math.min(scrollY / maxScroll, 1);
       setScrollProgress(progress);
+
+      // Mostrar search no header quando a barra principal estiver quase sumindo
+      setShowHeaderSearch(progress > 0.8);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Sincronizar valor da busca do header com o store
+  useEffect(() => {
+    setHeaderSearchValue(searchTerm);
+  }, [searchTerm]);
+
+  // Atualizar store quando digitar na barra do header (com debounce)
+  useEffect(() => {
+    if (showHeaderSearch && debouncedHeaderSearch !== searchTerm) {
+      setSearchTerm(debouncedHeaderSearch);
+      onSearch?.(debouncedHeaderSearch);
+    }
+  }, [
+    debouncedHeaderSearch,
+    showHeaderSearch,
+    setSearchTerm,
+    searchTerm,
+    onSearch,
+  ]);
 
   // Detectar tamanho da tela
   useEffect(() => {
@@ -55,7 +83,22 @@ const Header = ({ onSearch, onFilterToggle }) => {
   };
 
   const handleSearch = (searchTerm) => {
-    // A SearchBar já atualiza o store diretamente
+    onSearch?.(searchTerm);
+  };
+
+  const handleHeaderSearchChange = (e) => {
+    const newValue = e.target.value;
+    setHeaderSearchValue(newValue);
+  };
+
+  const handleHeaderSearchSubmit = (e) => {
+    e.preventDefault();
+    onSearch?.(headerSearchValue);
+  };
+
+  const handleHeaderSearchClear = () => {
+    setHeaderSearchValue("");
+    onSearch?.("");
   };
 
   const handleLogoClick = () => {
@@ -73,7 +116,7 @@ const Header = ({ onSearch, onFilterToggle }) => {
         )}
       >
         <div className="container mx-auto px-4">
-          {/* Primeira linha: Logo + Carrinho (unificado para mobile e desktop) */}
+          {/* Primeira linha: Logo + Search Header + Carrinho */}
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-4">
@@ -85,13 +128,56 @@ const Header = ({ onSearch, onFilterToggle }) => {
               </button>
             </div>
 
+            {/* Barra de pesquisa do header - aparece quando rola */}
+            <div
+              className={clsx(
+                "flex-1 max-w-md mx-4 transition-all duration-300 ease-in-out",
+                showHeaderSearch
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-2 pointer-events-none"
+              )}
+            >
+              <form onSubmit={handleHeaderSearchSubmit} className="relative">
+                <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl hover:border-primary-300 focus-within:border-primary-300 transition-colors duration-200">
+                  {/* Ícone de busca */}
+                  <div className="absolute left-3 flex items-center pointer-events-none">
+                    <img
+                      src={assets.Lupa}
+                      alt="Buscar"
+                      className="w-4 h-4 object-contain opacity-60"
+                    />
+                  </div>
+
+                  {/* Input */}
+                  <input
+                    type="text"
+                    value={headerSearchValue}
+                    onChange={handleHeaderSearchChange}
+                    placeholder="Buscar produtos..."
+                    className="w-full pl-10 pr-10 py-2 text-sm bg-transparent border-none outline-none placeholder-gray-500 text-gray-900"
+                    autoComplete="off"
+                  />
+
+                  {/* Botão de limpar */}
+                  {headerSearchValue && (
+                    <button
+                      type="button"
+                      onClick={handleHeaderSearchClear}
+                      className="absolute right-3 p-1 hover:bg-gray-200 rounded-md transition-colors duration-200"
+                    >
+                      <X className="w-3 h-3 text-gray-500" />
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
             {/* Carrinho */}
             <button
               onClick={handleCartClick}
               className="relative p-2 rounded hover:scale-110 transition-transform duration-200 ease-in-out focus:outline-none"
               style={{ willChange: "transform" }}
             >
-              {/* Substituído AnimatedCart por GIF */}
               <img
                 src={assets.Compras}
                 alt="Carrinho de compras"
@@ -116,27 +202,27 @@ const Header = ({ onSearch, onFilterToggle }) => {
         {/* Linha separadora 1 - Full width, fina e cor suave */}
         <div className="w-full h-px bg-gray-300"></div>
 
-        {/* Segunda seção: Subtítulos - ANIMAÇÃO BASEADA EM PROGRESSO (para ambos mobile e desktop) */}
+        {/* Segunda seção: Subtítulos - ANIMAÇÃO BASEADA EM PROGRESSO */}
         <div className="container mx-auto px-4">
           <div
             className="px-1 overflow-hidden transition-all duration-300 ease-out"
             style={{
-              height: `${(1 - scrollProgress) * (isMobile ? 82 : 92)}px`, // 82px mobile, 92px desktop
-              opacity: 1 - scrollProgress, // Fade out gradual
+              height: `${(1 - scrollProgress) * (isMobile ? 82 : 92)}px`,
+              opacity: 1 - scrollProgress,
               paddingTop: `${(1 - scrollProgress) * 16}px`,
               paddingBottom: `${(1 - scrollProgress) * 16}px`,
-              transform: `translateY(${scrollProgress * -20}px)`, // Desliza para cima gradualmente
+              transform: `translateY(${scrollProgress * -20}px)`,
             }}
           >
             <div
               style={{
-                opacity: 1 - scrollProgress * 1.2, // Titles desaparecem um pouco mais rápido
+                opacity: 1 - scrollProgress * 1.2,
                 transform: `translateY(${scrollProgress * -10}px)`,
               }}
             >
               <div
                 className={clsx(
-                  "mx-auto", // Centralizado sempre
+                  "mx-auto",
                   isMobile ? "max-w-full" : "max-w-2xl lg:max-w-3xl"
                 )}
               >
@@ -166,23 +252,28 @@ const Header = ({ onSearch, onFilterToggle }) => {
           </div>
         </div>
 
-        {/* Barra de busca - AJUSTE GRADUAL DO PADDING (para ambos mobile e desktop) */}
+        {/* Barra de busca principal - SOME GRADUALMENTE */}
         <div
           className="container mx-auto px-4"
           style={{
-            marginBottom: `${16 * (1 - scrollProgress)}px`, // mb-4 (16px) que vai para 0
+            height: `${(1 - scrollProgress) * (isMobile ? 80 : 88)}px`, // Altura que vai para 0
+            marginBottom: `${16 * (1 - scrollProgress)}px`,
+            opacity: 1 - scrollProgress * 1.5, // Some mais rápido que os títulos
+            transform: `translateY(${scrollProgress * -30}px)`, // Move mais para cima
+            pointerEvents: scrollProgress > 0.7 ? "none" : "auto", // Desabilita interação quando quase sumiu
+            // REMOVIDO overflow-hidden para permitir que sugestões apareçam
           }}
         >
           <div
             className="transition-all duration-300 ease-out"
             style={{
-              paddingTop: `${8 + scrollProgress * 8}px`, // Vai de 8px (mais perto) para 16px
-              paddingBottom: `${12 + scrollProgress * 4}px`, // Vai de 12px para 16px
+              paddingTop: `${(1 - scrollProgress) * 12}px`, // Padding que vai para 0
+              paddingBottom: `${(1 - scrollProgress) * 16}px`, // Padding que vai para 0
             }}
           >
             <div
               className={clsx(
-                "mx-auto", // Centralizado sempre
+                "mx-auto",
                 isMobile ? "max-w-full" : "max-w-2xl lg:max-w-3xl"
               )}
             >
@@ -196,8 +287,14 @@ const Header = ({ onSearch, onFilterToggle }) => {
           </div>
         </div>
 
-        {/* Linha separadora 2 - Full width, fina e cor suave */}
-        <div className="w-full h-px bg-gray-300"></div>
+        {/* Linha separadora 2 - Full width, fina e cor suave - SOME TAMBÉM */}
+        <div
+          className="w-full transition-all duration-300 ease-out"
+          style={{
+            height: `${(1 - scrollProgress) * 1}px`, // Linha que vai para altura 0
+            backgroundColor: scrollProgress > 0.9 ? "transparent" : "#d1d5db", // Fica transparente quando quase sumiu
+          }}
+        ></div>
 
         {/* Menu mobile overlay */}
         {mobileMenuOpen && isMobile && (

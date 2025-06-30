@@ -61,10 +61,27 @@ const ProductCard = ({
   const hasImage = product.anexos && product.anexos.length > 0;
   const imageUrl = hasImage ? product.anexos[0].anexo : null;
 
+  // Modificado: apenas animação de fade in, sem movimento vertical
   const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-    hover: { y: -4, transition: { duration: 0.2 } },
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 },
+  };
+
+  // Variantes para o botão com hover
+  const buttonVariants = {
+    hover: {
+      scale: 1.05,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut",
+      },
+    },
+    tap: {
+      scale: 0.95,
+      transition: {
+        duration: 0.1,
+      },
+    },
   };
 
   return (
@@ -72,12 +89,11 @@ const ProductCard = ({
       variants={cardVariants}
       initial="hidden"
       animate="visible"
-      whileHover="hover"
       className={clsx(
         "group relative bg-white rounded-xl border border-secondary-500",
         "shadow-soft hover:shadow-medium transition-all duration-300",
         "overflow-hidden cursor-pointer",
-        "h-auto flex flex-col", // mudou de altura fixa para auto
+        "h-auto flex flex-col",
         {
           "opacity-75": !isActive,
         },
@@ -104,7 +120,7 @@ const ProductCard = ({
         </div>
       )}
 
-      {/* Container da imagem - reduzido para proporção 1:1 */}
+      {/* Container da imagem */}
       <div
         className="relative w-full aspect-square overflow-hidden flex-shrink-0 p-2 bg-center bg-no-repeat"
         style={{
@@ -139,11 +155,9 @@ const ProductCard = ({
             <ImageIcon className="w-8 h-8 text-secondary-400" />
           </div>
         )}
-
-        {/* Overlay removido - agora abre direto o modal ao clicar no card */}
       </div>
 
-      {/* Conteúdo do card - otimizado para mobile */}
+      {/* Conteúdo do card */}
       <div className="p-3 flex flex-col flex-1 justify-between">
         <div className="space-y-2">
           {/* Nome do produto */}
@@ -159,7 +173,7 @@ const ProductCard = ({
             )}
           </div>
 
-          {/* Descrição - mais compacta */}
+          {/* Descrição */}
           {product.descricao && (
             <p className="text-xs text-secondary-600 line-clamp-2 min-h-[2rem]">
               {product.descricao}
@@ -183,33 +197,40 @@ const ProductCard = ({
           </div>
         </div>
 
-        {/* Botão de comprar/carrinho - compacto */}
-        <Button
-          variant={isInCart(product.id) ? "success" : "primary"}
-          size="sm"
-          fullWidth
-          onClick={handleAddToCart}
-          disabled={!isActive}
-          leftIcon={
-            isInCart(product.id) ? (
-              <div className="flex items-center gap-1">
-                <ShoppingCart size={16} />
-                <span>{currentQuantity}</span>
-              </div>
-            ) : (
-              <img src={assets.compra} alt="Comprar" className="w-4 h-4" />
-            )
-          }
-          className={clsx("mt-3 rounded-2xl text-white font-semibold", {
-            "justify-center": isInCart(product.id),
-          })}
-          style={{
-            backgroundColor: isInCart(product.id) ? "#C80F2E" : "#006336",
-            borderColor: isInCart(product.id) ? "#C80F2E" : "#006336",
-          }}
+        {/* Botão de comprar/carrinho com hover animado */}
+        <motion.div
+          variants={buttonVariants}
+          whileHover="hover"
+          whileTap="tap"
+          className="mt-3"
         >
-          {isInCart(product.id) ? "" : "Comprar"}
-        </Button>
+          <Button
+            variant={isInCart(product.id) ? "success" : "primary"}
+            size="sm"
+            fullWidth
+            onClick={handleAddToCart}
+            disabled={!isActive}
+            leftIcon={
+              isInCart(product.id) ? (
+                <div className="flex items-center gap-1">
+                  <ShoppingCart size={16} />
+                  <span>{currentQuantity}</span>
+                </div>
+              ) : (
+                <img src={assets.compra} alt="Comprar" className="w-4 h-4" />
+              )
+            }
+            className={clsx("rounded-2xl text-white font-semibold", {
+              "justify-center": isInCart(product.id),
+            })}
+            style={{
+              backgroundColor: isInCart(product.id) ? "#C80F2E" : "#006336",
+              borderColor: isInCart(product.id) ? "#C80F2E" : "#006336",
+            }}
+          >
+            {isInCart(product.id) ? "" : "Comprar"}
+          </Button>
+        </motion.div>
       </div>
     </motion.div>
   );

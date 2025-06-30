@@ -67,7 +67,7 @@ const SearchSuggestions = ({
   const getSuggestionTypeColor = (type) => {
     switch (type) {
       case "product":
-        return "text-blue-600 bg-blue-50 border-blue-200";
+        return "text-primary-700 bg-white border-blue-200";
       case "category":
         return "text-green-600 bg-green-50 border-green-200";
       case "keyword":
@@ -136,7 +136,7 @@ const SearchSuggestions = ({
                     onClick={() => handleSuggestionClick(suggestion)}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-secondary-50 transition-colors group"
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white text-primary-700 group-hover:bg-red transition-colors">
                       {getSuggestionIcon(suggestion)}
                     </div>
 
@@ -147,7 +147,7 @@ const SearchSuggestions = ({
                         </span>
                         <span
                           className={clsx(
-                            "text-xs px-1.5 py-0.5 rounded border text-blue-600 bg-blue-50 border-blue-200"
+                            "text-xs px-1.5 py-0.5 rounded border text-primary-700 bg-white border-blue-200"
                           )}
                         >
                           Produto

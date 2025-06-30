@@ -108,19 +108,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
         loading="eager"
       />
 
-      {/* Progress bar */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-80 max-w-[90%]">
-        <div className="w-full bg-white bg-opacity-20 rounded-full h-2 mb-3">
-          <div
-            className="bg-white h-2 rounded-full transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <p className="text-white text-center text-sm opacity-80">
-          {timeLeft}s restantes
-        </p>
-      </div>
-
       {/* Botão skip */}
       <button
         onClick={handleSkip}
