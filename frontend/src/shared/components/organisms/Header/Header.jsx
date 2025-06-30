@@ -34,13 +34,17 @@ const Header = ({ onSearch, onFilterToggle }) => {
       const progress = Math.min(scrollY / maxScroll, 1);
       setScrollProgress(progress);
 
-      // Mostrar search no header quando a barra principal estiver quase sumindo
-      setShowHeaderSearch(progress > 0.8);
+      // Mostrar search no header quando a barra principal estiver quase sumindo (APENAS NO DESKTOP)
+      if (!isMobile) {
+        setShowHeaderSearch(progress > 0.8);
+      } else {
+        setShowHeaderSearch(false);
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isMobile]); // Adicionar isMobile como dependência
 
   // Sincronizar valor da busca do header com o store
   useEffect(() => {
@@ -110,7 +114,8 @@ const Header = ({ onSearch, onFilterToggle }) => {
       <header
         className={clsx(
           "sticky top-0 z-40 bg-white border-b transition-all duration-300",
-          scrollProgress > 0.5
+          // No mobile, não aplicar efeitos de scroll
+          !isMobile && scrollProgress > 0.5
             ? "bg-white/95 backdrop-blur-sm shadow-sm border-gray-300"
             : "border-gray-200"
         )}
@@ -128,11 +133,11 @@ const Header = ({ onSearch, onFilterToggle }) => {
               </button>
             </div>
 
-            {/* Barra de pesquisa do header - aparece quando rola */}
+            {/* Barra de pesquisa do header - aparece quando rola (APENAS NO DESKTOP) */}
             <div
               className={clsx(
                 "flex-1 max-w-md mx-4 transition-all duration-300 ease-in-out",
-                showHeaderSearch
+                !isMobile && showHeaderSearch
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-2 pointer-events-none"
               )}
@@ -202,11 +207,12 @@ const Header = ({ onSearch, onFilterToggle }) => {
         {/* Linha separadora 1 - Full width, fina e cor suave */}
         <div className="w-full h-px bg-gray-300"></div>
 
-        {/* Segunda seção: Subtítulos - ANIMAÇÃO BASEADA EM PROGRESSO */}
+        {/* Segunda seção: Subtítulos - ANIMAÇÃO BASEADA EM PROGRESSO (MOBILE E DESKTOP) */}
         <div className="container mx-auto px-4">
           <div
             className="px-1 overflow-hidden transition-all duration-300 ease-out"
             style={{
+              // Aplicar scroll progress tanto no mobile quanto no desktop
               height: `${(1 - scrollProgress) * (isMobile ? 82 : 92)}px`,
               opacity: 1 - scrollProgress,
               paddingTop: `${(1 - scrollProgress) * 16}px`,
@@ -252,23 +258,33 @@ const Header = ({ onSearch, onFilterToggle }) => {
           </div>
         </div>
 
-        {/* Barra de busca principal - SOME GRADUALMENTE */}
+        {/* Barra de busca principal - NO MOBILE SEMPRE VISÍVEL, NO DESKTOP SOME GRADUALMENTE */}
         <div
           className="container mx-auto px-4"
           style={{
-            height: `${(1 - scrollProgress) * (isMobile ? 80 : 88)}px`, // Altura que vai para 0
-            marginBottom: `${16 * (1 - scrollProgress)}px`,
-            opacity: 1 - scrollProgress * 1.5, // Some mais rápido que os títulos
-            transform: `translateY(${scrollProgress * -30}px)`, // Move mais para cima
-            pointerEvents: scrollProgress > 0.7 ? "none" : "auto", // Desabilita interação quando quase sumiu
-            // REMOVIDO overflow-hidden para permitir que sugestões apareçam
+            // No mobile, manter altura fixa, no desktop aplicar scroll progress
+            height: isMobile
+              ? (isMobile ? 80 : 88) + "px"
+              : `${(1 - scrollProgress) * (isMobile ? 80 : 88)}px`,
+            marginBottom: isMobile ? "16px" : `${16 * (1 - scrollProgress)}px`,
+            opacity: isMobile ? 1 : 1 - scrollProgress * 1.5,
+            transform: isMobile
+              ? "translateY(0)"
+              : `translateY(${scrollProgress * -30}px)`,
+            pointerEvents: isMobile
+              ? "auto"
+              : scrollProgress > 0.7
+              ? "none"
+              : "auto",
           }}
         >
           <div
             className="transition-all duration-300 ease-out"
             style={{
-              paddingTop: `${(1 - scrollProgress) * 12}px`, // Padding que vai para 0
-              paddingBottom: `${(1 - scrollProgress) * 16}px`, // Padding que vai para 0
+              paddingTop: isMobile ? "12px" : `${(1 - scrollProgress) * 12}px`,
+              paddingBottom: isMobile
+                ? "16px"
+                : `${(1 - scrollProgress) * 16}px`,
             }}
           >
             <div
@@ -287,12 +303,16 @@ const Header = ({ onSearch, onFilterToggle }) => {
           </div>
         </div>
 
-        {/* Linha separadora 2 - Full width, fina e cor suave - SOME TAMBÉM */}
+        {/* Linha separadora 2 - NO MOBILE SEMPRE VISÍVEL, NO DESKTOP SOME TAMBÉM */}
         <div
           className="w-full transition-all duration-300 ease-out"
           style={{
-            height: `${(1 - scrollProgress) * 1}px`, // Linha que vai para altura 0
-            backgroundColor: scrollProgress > 0.9 ? "transparent" : "#d1d5db", // Fica transparente quando quase sumiu
+            height: isMobile ? "1px" : `${(1 - scrollProgress) * 1}px`,
+            backgroundColor: isMobile
+              ? "#d1d5db"
+              : scrollProgress > 0.9
+              ? "transparent"
+              : "#d1d5db",
           }}
         ></div>
 
