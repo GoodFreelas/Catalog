@@ -3,8 +3,6 @@
 # 🛍️ Tiny Products Catalog
 
 **Catálogo moderno de produtos com sincronização automática do Tiny ERP**
-
-[![CI/CD](https://img.shields.io/badge/CI/CD-Active-success?style=flat-square&logo=github)](https://github.com/DionathaGoulart)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](LICENSE)
 [![React](https://img.shields.io/badge/React-18.2.0-blue?style=flat-square&logo=react)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
