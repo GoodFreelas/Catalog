@@ -1,26 +1,47 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { Suspense, lazy } from "react";
-import { Loader2 } from "lucide-react";
+// React & React Hooks
+import { Suspense, lazy } from 'react';
 
-// Lazy loading das páginas
-const CatalogPage = lazy(() => import("../features/catalog/pages/CatalogPage"));
-const ProductDetailPage = lazy(() =>
-  import("../features/catalog/pages/ProductDetailPage")
-);
-const CartPage = lazy(() => import("../features/cart/pages/CartPage"));
+// React Router
+import { Routes, Route } from 'react-router-dom';
 
-// Componente de loading
-const PageLoader = () => (
+// External Libraries
+import { Loader2 } from 'lucide-react';
+
+// Types
+import { LoadingProps } from '../types/components';
+
+// ================================
+// Lazy Loading das Páginas
+// ================================
+
+const CatalogPage = lazy(() => import('../features/catalog/pages/CatalogPage'));
+const ProductDetailPage = lazy(() => import('../features/catalog/pages/ProductDetailPage'));
+const CartPage = lazy(() => import('../features/cart/pages/CartPage'));
+
+// ================================
+// Componentes de Loading
+// ================================
+
+/**
+ * Componente de loading para páginas lazy-loaded
+ */
+const PageLoader: React.FC<LoadingProps> = ({ text = 'Carregando...' }) => (
   <div className="min-h-[400px] flex items-center justify-center">
     <div className="flex items-center gap-3">
       <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
-      <span className="text-secondary-600">Carregando...</span>
+      <span className="text-secondary-600">{text}</span>
     </div>
   </div>
 );
 
-// Componente de página não encontrada
-const NotFoundPage = () => (
+// ================================
+// Páginas de Erro
+// ================================
+
+/**
+ * Componente de página não encontrada (404)
+ */
+const NotFoundPage: React.FC = () => (
   <div className="min-h-[400px] flex flex-col items-center justify-center p-8">
     <div className="text-center">
       <h1 className="text-6xl font-bold text-secondary-300 mb-4">404</h1>

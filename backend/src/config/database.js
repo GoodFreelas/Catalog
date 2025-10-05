@@ -1,6 +1,17 @@
+// External Libraries
 const mongoose = require('mongoose');
+
+// Utilities
 const { logger } = require('../utils/logger');
 
+// ================================
+// Database Connection
+// ================================
+
+/**
+ * Conecta ao banco de dados MongoDB
+ * Configura conexão com opções otimizadas e handlers de eventos
+ */
 const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tiny_products';
@@ -41,5 +52,9 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
+
+// ================================
+// Export
+// ================================
 
 module.exports = connectDB;

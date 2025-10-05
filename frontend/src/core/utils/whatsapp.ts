@@ -1,4 +1,12 @@
+// Constants
 import { WHATSAPP_CONFIG } from '../constants/api';
+
+// Types
+import { WhatsAppMessage, Product } from '../../types/index';
+
+// ================================
+// WhatsApp URL Generation
+// ================================
 
 /**
  * Gera URL do WhatsApp com mensagem
@@ -139,7 +147,6 @@ export const sendWhatsAppMessage = (message, phoneNumber = WHATSAPP_CONFIG.PHONE
     openWhatsApp(message, formattedNumber);
 
   } catch (error) {
-    console.error('Erro ao enviar mensagem WhatsApp:', error);
     throw error;
   }
 };

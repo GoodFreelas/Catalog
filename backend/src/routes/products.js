@@ -1,13 +1,36 @@
+// External Libraries
 const express = require('express');
+
+// Models
 const Product = require('../models/Product');
-const { logger } = require('../utils/logger'); // Corrigido: destructuring do logger
+
+// Utilities
+const { logger } = require('../utils/logger');
+
+// ================================
+// Router Configuration
+// ================================
 
 const router = express.Router();
 
+// ================================
+// Routes Definition
+// ================================
+
 /**
+ * Lista produtos com paginação e filtros
  * @route GET /products
  * @desc Listar produtos com paginação e filtros
  * @access Public
+ * @param {number} [page=1] - Número da página
+ * @param {number} [limit=10] - Itens por página (máximo 100)
+ * @param {string} [situacao] - Filtrar por situação (A/I)
+ * @param {string} [categoria] - Filtrar por categoria
+ * @param {string} [search] - Busca textual
+ * @param {number} [preco_min] - Preço mínimo
+ * @param {number} [preco_max] - Preço máximo
+ * @param {string} [sort] - Campo para ordenação
+ * @param {string} [order=desc] - Ordem da ordenação (asc/desc)
  */
 router.get('/', async (req, res) => {
   try {
@@ -96,9 +119,11 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * Busca produto específico por ID
  * @route GET /products/:id
  * @desc Buscar produto específico por ID
  * @access Public
+ * @param {string} id - ID do produto
  */
 router.get('/:id', async (req, res) => {
   try {
@@ -140,9 +165,12 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
+ * Busca textual em produtos
  * @route GET /products/search/text
  * @desc Busca textual em produtos
  * @access Public
+ * @param {string} q - Termo de busca
+ * @param {number} [limit=10] - Limite de resultados
  */
 router.get('/search/text', async (req, res) => {
   try {
@@ -180,6 +208,7 @@ router.get('/search/text', async (req, res) => {
 });
 
 /**
+ * Estatísticas gerais dos produtos
  * @route GET /products/stats/general
  * @desc Estatísticas gerais dos produtos
  * @access Public
@@ -240,6 +269,7 @@ router.get('/stats/general', async (req, res) => {
 });
 
 /**
+ * Lista categorias disponíveis
  * @route GET /products/categories
  * @desc Listar categorias disponíveis
  * @access Public
@@ -283,9 +313,13 @@ router.get('/categories', async (req, res) => {
 });
 
 /**
+ * Lista produtos de uma categoria específica
  * @route GET /products/category/:category
  * @desc Listar produtos de uma categoria específica
  * @access Public
+ * @param {string} category - Nome da categoria
+ * @param {number} [page=1] - Número da página
+ * @param {number} [limit=10] - Itens por página
  */
 router.get('/category/:category', async (req, res) => {
   try {
@@ -327,5 +361,9 @@ router.get('/category/:category', async (req, res) => {
     });
   }
 });
+
+// ================================
+// Export
+// ================================
 
 module.exports = router;

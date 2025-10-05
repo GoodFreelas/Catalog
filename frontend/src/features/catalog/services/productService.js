@@ -127,7 +127,6 @@ export class ProductService {
         products
       };
     } catch (error) {
-      console.error('Erro ao buscar sugestões:', error);
       return { suggestions: [] };
     }
   }

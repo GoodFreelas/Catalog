@@ -52,7 +52,6 @@ const CatalogPage = () => {
       search: searchTerm,
     },
     onError: (error) => {
-      console.error("Erro ao carregar produtos:", error);
       toast.error("Erro ao carregar produtos. Tente novamente.");
     },
   });

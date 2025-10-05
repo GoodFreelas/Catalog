@@ -1,5 +1,14 @@
+// External Libraries
 const mongoose = require('mongoose');
 
+// ================================
+// Product Schema
+// ================================
+
+/**
+ * Schema do modelo Product para produtos do Tiny ERP
+ * Define estrutura completa do produto com índices otimizados
+ */
 const productSchema = new mongoose.Schema({
   // Identificação
   id: {
@@ -127,33 +136,69 @@ const productSchema = new mongoose.Schema({
   collection: 'products'
 });
 
+// ================================
+// Indexes
+// ================================
+
 // Índices compostos para consultas otimizadas
 productSchema.index({ situacao: 1, sync_date: -1 });
 productSchema.index({ categoria: 1, situacao: 1 });
 productSchema.index({ nome: 'text', descricao_complementar: 'text' }); // Busca textual
 
-// Métodos do schema
+// ================================
+// Instance Methods
+// ================================
+
+/**
+ * Verifica se o produto está ativo
+ * @returns {boolean} True se o produto estiver ativo
+ */
 productSchema.methods.isActive = function () {
   return this.situacao === 'A';
 };
 
+/**
+ * Verifica se o produto possui imagens
+ * @returns {boolean} True se o produto tiver imagens
+ */
 productSchema.methods.hasImages = function () {
   return this.anexos && this.anexos.length > 0;
 };
 
+/**
+ * Obtém a imagem principal do produto
+ * @returns {string|null} URL da imagem principal ou null
+ */
 productSchema.methods.getMainImage = function () {
   return this.anexos && this.anexos.length > 0 ? this.anexos[0].anexo : null;
 };
 
-// Métodos estáticos
+// ================================
+// Static Methods
+// ================================
+
+/**
+ * Busca todos os produtos ativos
+ * @returns {Query} Query para produtos ativos
+ */
 productSchema.statics.findActive = function () {
   return this.find({ situacao: 'A' });
 };
 
+/**
+ * Busca produtos por categoria
+ * @param {string} category - Nome da categoria
+ * @returns {Query} Query para produtos da categoria
+ */
 productSchema.statics.findByCategory = function (category) {
   return this.find({ categoria: category, situacao: 'A' });
 };
 
+/**
+ * Busca produtos por nome usando busca textual
+ * @param {string} searchTerm - Termo de busca
+ * @returns {Query} Query para busca textual
+ */
 productSchema.statics.searchByName = function (searchTerm) {
   return this.find({
     $text: { $search: searchTerm },
@@ -161,11 +206,21 @@ productSchema.statics.searchByName = function (searchTerm) {
   });
 };
 
-// Middleware pre-save
+// ================================
+// Middleware
+// ================================
+
+/**
+ * Middleware pre-save para atualizar timestamp
+ */
 productSchema.pre('save', function (next) {
   this.last_updated = new Date();
   next();
 });
+
+// ================================
+// Model Creation & Export
+// ================================
 
 const Product = mongoose.model('Product', productSchema);
 

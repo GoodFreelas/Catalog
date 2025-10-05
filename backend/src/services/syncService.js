@@ -1,10 +1,20 @@
+// External Services
 const { tinyApiClient } = require('./tinyService');
+
+// Models
 const Product = require('../models/Product');
 const { saveSyncLog } = require('../models/SyncLog');
+
+// Utilities
 const { logger } = require('../utils/logger');
 
+// ================================
+// SyncService Class
+// ================================
+
 /**
- * Serviço de sincronização de produtos
+ * Serviço de sincronização de produtos do Tiny ERP
+ * Gerencia a sincronização completa de produtos com controle de conflitos
  */
 class SyncService {
   constructor() {
@@ -17,6 +27,10 @@ class SyncService {
       total: 0
     };
   }
+
+  // ================================
+  // Public Methods
+  // ================================
 
   /**
    * Executa a sincronização completa de produtos
@@ -95,6 +109,10 @@ class SyncService {
       this.isRunning = false;
     }
   }
+
+  // ================================
+  // Private Methods
+  // ================================
 
   /**
    * Processa um lote de produtos
@@ -281,10 +299,18 @@ class SyncService {
   }
 }
 
+// ================================
+// Export
+// ================================
+
 // Instância singleton do serviço
 const syncService = new SyncService();
 
-// Função para compatibilidade com código existente
+/**
+ * Função para compatibilidade com código existente
+ * @param {string} syncType - Tipo de sincronização
+ * @returns {Promise<Object>} Resultado da sincronização
+ */
 async function syncProducts(syncType = 'manual') {
   return await syncService.syncProducts(syncType);
 }

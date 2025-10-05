@@ -1,4 +1,8 @@
+// External Libraries
 import { create } from 'zustand';
+
+// Types
+import { UIStoreState, Filters, Modals } from '../../types/stores';
 
 export const useUIStore = create((set, get) => ({
   // Estado da UI

@@ -97,7 +97,7 @@ export const useSearch = (initialQuery = '', options = {}) => {
       try {
         localStorage.setItem('search-history', JSON.stringify(newHistory));
       } catch (error) {
-        console.error('Erro ao salvar histórico:', error);
+        // Erro silencioso
       }
       return newHistory;
     });
@@ -111,7 +111,7 @@ export const useSearch = (initialQuery = '', options = {}) => {
         setSearchHistory(JSON.parse(saved));
       }
     } catch (error) {
-      console.error('Erro ao carregar histórico de busca:', error);
+      // Erro silencioso
     }
   }, []);
 
@@ -121,7 +121,7 @@ export const useSearch = (initialQuery = '', options = {}) => {
     try {
       localStorage.removeItem('search-history');
     } catch (error) {
-      console.error('Erro ao limpar histórico:', error);
+      // Erro silencioso
     }
   }, []);
 
@@ -132,7 +132,7 @@ export const useSearch = (initialQuery = '', options = {}) => {
       try {
         localStorage.setItem('search-history', JSON.stringify(filtered));
       } catch (error) {
-        console.error('Erro ao remover do histórico:', error);
+        // Erro silencioso
       }
       return filtered;
     });

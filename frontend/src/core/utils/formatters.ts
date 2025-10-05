@@ -1,10 +1,20 @@
+// Types
+import { FormatterOptions } from '../../types/index';
+
+// ================================
+// Currency Formatting
+// ================================
+
 /**
  * Formata valor monetário para Real brasileiro
- * @param {number|string} value - Valor a ser formatado
- * @param {Object} options - Opções de formatação
- * @returns {string} Valor formatado
+ * @param value - Valor a ser formatado
+ * @param options - Opções de formatação
+ * @returns Valor formatado
  */
-export const formatCurrency = (value, options = {}) => {
+export const formatCurrency = (
+  value: number | string | null | undefined,
+  options: FormatterOptions = {}
+): string => {
   const {
     currency = 'BRL',
     locale = 'pt-BR',
@@ -31,7 +41,6 @@ export const formatCurrency = (value, options = {}) => {
       maximumFractionDigits,
     }).format(numericValue);
   } catch (error) {
-    console.error('Erro ao formatar moeda:', error, 'Valor:', value);
     return `R$ ${numericValue.toFixed(2).replace('.', ',')}`;
   }
 };

@@ -1,13 +1,33 @@
-import { useEffect, useRef, useState } from "react";
-import { assets } from "../assets";
+// React & React Hooks
+import { useEffect, useRef, useState } from 'react';
 
-// Função para detectar se é mobile
-const detectIsMobile = () =>
+// Assets
+import { assets } from '../assets';
+
+// Types
+import { IntroVideoProps } from '../types/components';
+
+// ================================
+// Helper Functions
+// ================================
+
+/**
+ * Detecta se o dispositivo é mobile baseado no user agent
+ */
+const detectIsMobile = (): boolean =>
   /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
     navigator.userAgent.toLowerCase()
   );
 
-const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
+// ================================
+// Main Component
+// ================================
+
+/**
+ * Componente de vídeo introdutório com timer e opção de pular.
+ * Mostra uma animação GIF e permite ao usuário pular ou aguardar o término.
+ */
+const IntroVideo: React.FC<IntroVideoProps> = ({ onEnd, onSkip, isFinished }) => {
   const [isMobile] = useState(detectIsMobile());
 
   // Estados que sempre resetam
@@ -24,7 +44,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
   const finish = () => {
     if (hasFinished) return;
 
-    console.log("🏁 Finalizando intro");
     setHasFinished(true);
 
     // Limpa timers
@@ -36,8 +55,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
 
   // Effect principal - sempre recomeça do zero
   useEffect(() => {
-    console.log("🚀 Intro montado - iniciando do zero");
-
     // Força reset de todos os estados
     setProgress(0);
     setTimeLeft(isMobile ? 3 : 5);
@@ -46,8 +63,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
     // Pequeno delay para garantir que o reset aconteceu
     const initDelay = setTimeout(() => {
       const startTime = Date.now();
-
-      console.log("⏰ Timer iniciado");
 
       // Timer de progresso
       intervalRef.current = setInterval(() => {
@@ -65,14 +80,12 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
 
       // Timeout de segurança
       timeoutRef.current = setTimeout(() => {
-        console.log("⏰ Timeout de segurança");
         finish();
       }, DURATION + 500);
     }, 50); // 50ms de delay para garantir reset
 
     // Cleanup
     return () => {
-      console.log("🧹 Limpando timers");
       clearTimeout(initDelay);
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -81,7 +94,6 @@ const IntroVideo = ({ onEnd, onSkip, isFinished }) => {
 
   // Handler para skip
   const handleSkip = () => {
-    console.log("⏭️ Skip clicado");
     finish();
     if (onSkip && onSkip !== onEnd) {
       onSkip();

@@ -18,7 +18,6 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -31,27 +30,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Log do erro
-    console.error('❌ API Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data,
-    });
-
-    // Tratamento de erros específicos
-    if (error.response?.status === 429) {
-      console.warn('⚠️ Rate limit atingido, tente novamente em alguns segundos');
-    }
-
-    if (error.response?.status >= 500) {
-      console.error('🔥 Erro interno do servidor');
-    }
-
-    if (error.code === 'ECONNABORTED') {
-      console.error('⏰ Timeout da requisição');
-    }
-
+    // Tratamento de erros específicos (sem logs)
     return Promise.reject(error);
   }
 );

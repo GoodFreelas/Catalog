@@ -1,7 +1,15 @@
+// ================================
+// Logger System
+// ================================
+
 /**
  * Sistema de logs customizado
  * Suporta diferentes níveis de log e formatação colorida
  */
+
+// ================================
+// Constants
+// ================================
 
 const LOG_LEVELS = {
   DEBUG: 0,
@@ -18,6 +26,13 @@ const LOG_COLORS = {
   RESET: '\x1b[0m'   // Reset
 };
 
+// ================================
+// Logger Class
+// ================================
+
+/**
+ * Classe Logger para sistema de logs customizado
+ */
 class Logger {
   constructor() {
     this.level = this.getLogLevel();
@@ -190,10 +205,19 @@ class Logger {
   }
 }
 
+// ================================
+// Export
+// ================================
+
 // Instância singleton do logger
 const logger = new Logger();
 
-// Middleware para logs de requisições Express
+/**
+ * Middleware para logs de requisições Express
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} next - Next middleware function
+ */
 const requestLogger = (req, res, next) => {
   const start = Date.now();
 

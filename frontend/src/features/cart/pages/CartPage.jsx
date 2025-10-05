@@ -73,7 +73,6 @@ const CartPage = () => {
       // Opcional: limpar carrinho após envio
       // clearCart();
     } catch (error) {
-      console.error("Erro ao enviar para WhatsApp:", error);
       toast.error("Erro ao abrir WhatsApp. Tente novamente.");
     }
   };

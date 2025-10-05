@@ -1,24 +1,42 @@
+// External Libraries
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
 require('dotenv').config();
 
-// Importações dos módulos
+// Database & Configuration
 const connectDB = require('./src/config/database');
+
+// Services & Models
 const { syncProducts } = require('./src/services/syncService');
 const { saveSyncLog } = require('./src/models/SyncLog');
-const { errorHandler, notFoundHandler } = require('./src/middlewares/errorHandler');
-const { logger } = require('./src/utils/logger'); // Corrigido: destructuring do logger
 
-// Importação das rotas
+// Middlewares
+const { errorHandler, notFoundHandler, correlationIdHandler } = require('./src/middlewares/errorHandler');
+
+// Utilities
+const { logger } = require('./src/utils/logger');
+
+// Routes
 const productsRoutes = require('./src/routes/products');
 const syncRoutes = require('./src/routes/sync');
 const debugRoutes = require('./src/routes/debug');
 
+// ================================
+// Constants & Configuration
+// ================================
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuração de origens permitidas para CORS
+// ================================
+// CORS Configuration
+// ================================
+
+/**
+ * Obtém lista de origens permitidas para CORS baseada nas variáveis de ambiente
+ * @returns {Array<string>} Array de origens permitidas
+ */
 const getAllowedOrigins = () => {
   const origins = [
     'http://localhost:5173',              // Vite dev
@@ -59,7 +77,9 @@ const getAllowedOrigins = () => {
 
 const allowedOrigins = getAllowedOrigins();
 
-// CORS configurado com opções mais permissivas para produção
+/**
+ * Configuração do CORS com opções mais permissivas para produção
+ */
 const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requests sem origin (mobile apps, postman, etc.)
@@ -102,10 +122,16 @@ const corsOptions = {
   preflightContinue: false
 };
 
+// ================================
+// Middlewares Configuration
+// ================================
+
 // CORS aplicado ANTES de todos os middlewares
 app.use(cors(corsOptions));
 
-// Middleware adicional para garantir headers CORS em todas as respostas
+/**
+ * Middleware adicional para garantir headers CORS em todas as respostas
+ */
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
@@ -131,13 +157,31 @@ app.use((req, res, next) => {
 });
 
 // Middlewares globais
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware de logging de requisições (importado do logger)
+const { requestLogger } = require('./src/utils/logger');
+app.use(requestLogger);
+
+// Middleware de ID de correlação
+app.use(correlationIdHandler);
+
+// ================================
+// Database Connection
+// ================================
 
 // Conectar ao MongoDB
 connectDB();
 
-// Health check específico para CORS
+// ================================
+// Routes Configuration
+// ================================
+
+/**
+ * Health check específico para CORS
+ * @route GET /health
+ */
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -152,7 +196,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Rota principal
+/**
+ * Rota principal da API
+ * @route GET /
+ */
 app.get('/', (req, res) => {
   res.json({
     message: 'API de Sincronização Tiny ERP',
@@ -171,7 +218,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Registrar rotas
+// Registrar rotas da API
 app.use('/products', productsRoutes);
 app.use('/sync', syncRoutes);
 app.use('/debug', debugRoutes);
@@ -181,6 +228,10 @@ app.use(notFoundHandler);
 
 // Middleware de tratamento de erros
 app.use(errorHandler);
+
+// ================================
+// Sync Service Functions
+// ================================
 
 /**
  * Executa sincronização com verificação de conflito
@@ -217,6 +268,10 @@ async function executeSyncWithRetry(syncType, retryDelay = 5) {
   }
 }
 
+// ================================
+// Cron Jobs Configuration
+// ================================
+
 // Configurar cron jobs para sincronização automática
 // Sincronização diária às 02:00 (mais completa)
 cron.schedule('0 2 * * *', () => {
@@ -243,7 +298,13 @@ if (enableFrequentSync) {
   logger.info('🔄 Sincronização frequente desabilitada (use ENABLE_FREQUENT_SYNC=true para habilitar)');
 }
 
-// Inicializar servidor
+// ================================
+// Server Initialization
+// ================================
+
+/**
+ * Inicializa o servidor Express
+ */
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Servidor rodando na porta ${PORT}`);
   logger.info(`🌐 CORS habilitado para: ${allowedOrigins.join(', ')}`);
@@ -265,21 +326,35 @@ const server = app.listen(PORT, () => {
   }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM recebido. Encerrando servidor graciosamente...');
-  server.close(() => {
-    logger.info('Servidor encerrado.');
-    process.exit(0);
-  });
-});
+// ================================
+// Graceful Shutdown
+// ================================
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT recebido. Encerrando servidor graciosamente...');
+/**
+ * Handler para encerramento gracioso do servidor
+ * @param {string} signal - Sinal recebido
+ */
+const gracefulShutdown = (signal) => {
+  logger.info(`${signal} recebido. Encerrando servidor graciosamente...`);
+  
   server.close(() => {
     logger.info('Servidor encerrado.');
     process.exit(0);
   });
-});
+
+  // Force close após 30 segundos
+  setTimeout(() => {
+    logger.error('Forçando encerramento do servidor...');
+    process.exit(1);
+  }, 30000);
+};
+
+// Listeners para sinais de encerramento
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// ================================
+// Export
+// ================================
 
 module.exports = app;

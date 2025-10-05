@@ -1,5 +1,9 @@
+// External Libraries
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+
+// Types
+import { CartStoreState, CartStoreItem, CartPersistState, Product } from '../../types/stores';
 
 export const useCartStore = create(
   persist(

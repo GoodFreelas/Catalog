@@ -1,410 +1,287 @@
-# E-commerce Fullstack - Integração Tiny API
+<div align="center">
 
-Um e-commerce completo desenvolvido com Node.js, Express, React, Vite e Tailwind CSS, integrado com a API da Tiny ERP.
+# 🛍️ Tiny Products Catalog
 
-## 🚀 Características
+**Catálogo moderno de produtos com sincronização automática do Tiny ERP**
 
-- **Backend**: Node.js + Express + MongoDB
-- **Frontend**: React + Vite + Tailwind CSS
-- **Arquitetura**: Atomic Design (Atoms, Molecules, Organisms)
-- **Cache inteligente**: SessionStorage para otimizar requisições
-- **Sincronização automática**: Produtos atualizados automaticamente
-- **Carrinho de compras**: Integração com WhatsApp
-- **Responsivo**: Design adaptado para mobile e desktop
+[![CI/CD](https://img.shields.io/badge/CI/CD-Active-success?style=flat-square&logo=github)](https://github.com/DionathaGoulart)
+[![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](LICENSE)
+[![React](https://img.shields.io/badge/React-18.2.0-blue?style=flat-square&logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.5.0-green?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
 
-## 📋 Pré-requisitos
-
-- Node.js (versão 16 ou superior)
-- MongoDB (local ou MongoDB Atlas)
-- NPM ou Yarn
-
-## 🛠️ Instalação
-
-### 1. Clone o repositório
-
-```bash
-git clone <seu-repositorio>
-cd ecommerce-fullstack
-```
-
-### 2. Configuração do Backend
-
-```bash
-# Acesse a pasta do backend
-cd backend
-
-# Instale as dependências
-npm install
-
-# Configure as variáveis de ambiente
-cp .env.example .env
-```
-
-Edite o arquivo `.env` com suas configurações:
-
-```env
-PORT=3001
-TINY_TOKEN=6126c965d5c8d23c0da7b7bc33372c40463b9368fce27eeb36c6e0b3a5e13929
-MONGODB_URI=mongodb://localhost:27017/ecommerce
-NODE_ENV=development
-```
-
-### 3. Configuração do Frontend
-
-```bash
-# Acesse a pasta do frontend
-cd ../frontend
-
-# Instale as dependências
-npm install
-```
-
-### 4. Inicialização
-
-#### Backend (Terminal 1)
-
-```bash
-cd backend
-npm run dev
-```
-
-#### Frontend (Terminal 2)
-
-```bash
-cd frontend
-npm run dev
-```
-
-### 5. Sincronização Inicial de Produtos
-
-```bash
-# Execute a sincronização manual inicial
-cd backend
-npm run sync
-```
-
-## 📊 API Endpoints
-
-### Produtos
-
-- `GET /api/products` - Listar produtos com filtros
-- `GET /api/products/:id` - Buscar produto específico
-- `GET /api/products/categories` - Listar categorias
-- `GET /api/products/stats/summary` - Estatísticas gerais
-- `POST /api/products/sync` - Sincronização manual
-
-### Parâmetros de Filtros
-
-```javascript
-{
-  page: 1,           // Página atual
-  limit: 20,         // Itens por página
-  search: '',        // Busca por texto
-  categoria: '',     // Filtrar por categoria
-  minPrice: 0,       // Preço mínimo
-  maxPrice: null,    // Preço máximo
-  sortBy: 'nome',    // Campo de ordenação
-  sortOrder: 'asc'   // Direção da ordenação
-}
-```
-
-## 🎨 Estrutura do Frontend
-
-```
-src/
-├── components/
-│   ├── atoms/           # Componentes básicos
-│   │   ├── Button.jsx
-│   │   ├── Input.jsx
-│   │   ├── Badge.jsx
-│   │   └── Loading.jsx
-│   ├── molecules/       # Componentes compostos
-│   │   ├── ProductCard.jsx
-│   │   └── SearchFilters.jsx
-│   └── organisms/       # Componentes complexos
-│       ├── Header.jsx
-│       └── Footer.jsx
-├── contexts/
-│   └── CartContext.jsx  # Estado global do carrinho
-├── pages/
-│   ├── HomePage.jsx
-│   ├── ProductPage.jsx
-│   └── CartPage.jsx
-├── services/
-│   └── api.js          # Serviços de API e cache
-└── App.jsx
-```
-
-## 💾 Sistema de Cache
-
-O sistema utiliza sessionStorage para otimizar requisições:
-
-```javascript
-// Cache automático por 30 minutos para produtos
-// Cache automático por 60 minutos para produto individual
-// Cache automático por 1 hora para estatísticas
-
-// Limpar cache manualmente
-cacheService.clearProductsCache();
-```
-
-## 🛒 Funcionalidades do Carrinho
-
-- Adicionar/remover produtos
-- Atualizar quantidades
-- Cálculo automático de totais
-- Persistência no localStorage
-- Integração com WhatsApp
-
-### Personalizar WhatsApp
-
-Altere o número padrão em `CartContext.jsx`:
-
-```javascript
-const sendToWhatsApp = (phoneNumber = "5551999999999") => {
-  // Seu código aqui
-};
-```
-
-## ⏰ Sincronização Automática
-
-A sincronização é executada automaticamente a cada 6 horas, mas você pode customizar:
-
-```javascript
-// Em server.js - alterar frequência
-cron.schedule("0 */6 * * *", async () => {
-  // A cada 6 horas
-});
-
-// Outras opções:
-// '0 */1 * * *'    - A cada hora
-// '0 0 * * *'      - Diariamente à meia-noite
-// '0 0 */3 * *'    - A cada 3 dias
-```
-
-### Sincronização Manual
-
-```bash
-# Via script
-npm run sync
-
-# Via API
-curl -X POST http://localhost:3001/api/products/sync
-```
-
-## 🎨 Customização do Design
-
-### Cores (tailwind.config.js)
-
-```javascript
-colors: {
-  primary: {
-    50: '#eff6ff',
-    500: '#3b82f6',  // Cor principal
-    600: '#2563eb',  // Hover
-    700: '#1d4ed8',  // Active
-  }
-}
-```
-
-### Componentes Atoms
-
-Todos os componentes seguem o padrão Atomic Design para fácil customização:
-
-```jsx
-// Button.jsx - Variantes disponíveis
-<Button variant="primary" size="large">
-<Button variant="secondary" size="medium">
-<Button variant="outline" size="small">
-<Button variant="danger">
-<Button variant="success">
-<Button variant="ghost">
-```
-
-## 📱 Responsividade
-
-O design é mobile-first com breakpoints:
-
-- `sm`: 640px
-- `md`: 768px
-- `lg`: 1024px
-- `xl`: 1280px
-
-## 🔧 Configurações Avançadas
-
-### Limites de API
-
-A Tiny API tem limite de requisições. O sistema implementa:
-
-```javascript
-// Delay de 1.2s entre requisições
-this.delay = 1200;
-
-// Retry automático em caso de erro
-// Cache inteligente para reduzir chamadas
-```
-
-### Performance
-
-```javascript
-// Lazy loading de imagens
-// Paginação inteligente
-// Cache em múltiplas camadas
-// Debounce em filtros de busca (500ms)
-```
-
-## 🚀 Deploy
-
-### Backend (Heroku/Railway/Render)
-
-1. Configure as variáveis de ambiente
-2. Configure MongoDB Atlas
-3. Deploy do backend
-
-### Frontend (Vercel/Netlify)
-
-1. Configure a URL da API de produção
-2. Build e deploy
-
-```bash
-# Build do frontend
-npm run build
-
-# Preview local
-npm run preview
-```
-
-### Variáveis de Ambiente - Produção
-
-```env
-# Backend
-PORT=3001
-TINY_TOKEN=seu_token_aqui
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/ecommerce
-NODE_ENV=production
-
-# Frontend (se necessário)
-VITE_API_URL=https://sua-api.herokuapp.com
-```
-
-## 🧪 Testes
-
-```bash
-# Backend
-cd backend
-npm test
-
-# Frontend
-cd frontend
-npm test
-```
-
-## 📦 Scripts Disponíveis
-
-### Backend
-
-```bash
-npm start          # Produção
-npm run dev        # Desenvolvimento
-npm run sync       # Sincronização manual
-```
-
-### Frontend
-
-```bash
-npm run dev        # Desenvolvimento
-npm run build      # Build para produção
-npm run preview    # Preview do build
-npm run lint       # Verificar código
-```
-
-## 🐛 Troubleshooting
-
-### Problema: Produtos não carregam
-
-1. Verifique se o MongoDB está rodando
-2. Verifique o token da Tiny API
-3. Execute sincronização manual: `npm run sync`
-
-### Problema: Erro de CORS
-
-Configure CORS no backend:
-
-```javascript
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "https://seu-dominio.com"],
-  })
-);
-```
-
-### Problema: Cache travado
-
-```javascript
-// Limpar cache no console do navegador
-cacheService.clearProductsCache();
-localStorage.clear();
-sessionStorage.clear();
-```
-
-## 📄 Estrutura de Arquivos Completa
-
-```
-projeto/
-├── backend/
-│   ├── config/
-│   │   └── database.js
-│   ├── models/
-│   │   └── Product.js
-│   ├── routes/
-│   │   └── products.js
-│   ├── services/
-│   │   └── tinyService.js
-│   ├── scripts/
-│   │   └── syncProducts.js
-│   ├── .env
-│   ├── package.json
-│   └── server.js
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── atoms/
-│   │   │   ├── molecules/
-│   │   │   └── organisms/
-│   │   ├── contexts/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── index.html
-│   ├── package.json
-│   ├── tailwind.config.js
-│   └── vite.config.js
-└── README.md
-```
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📞 Suporte
-
-Para suporte e dúvidas:
-
-- 📧 Email: contato@ecommerce.com
-- 💬 WhatsApp: (51) 99999-9999
-- 🐛 Issues: [GitHub Issues](link-do-repositorio/issues)
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+</div>
 
 ---
 
-⭐ **Desenvolvido com ❤️ para facilitar vendas online!**
+## 📸 Preview
+
+<div align="center">
+
+<img src="imgs/desktop.jpg" alt="Desktop Preview" width="800"/>
+<p><em>Visualização desktop do catálogo com produtos e filtros</em></p>
+
+<img src="imgs/mobile.jpeg" alt="Mobile Preview" width="400"/>
+<p><em>Visualização mobile responsiva do catálogo de produtos</em></p>
+
+</div>
+
+---
+
+## ✨ Funcionalidades
+
+### 🎯 Principais Características
+
+- **🛍️ Catálogo Completo** - Visualização de produtos com paginação e filtros avançados
+- **🔍 Busca Inteligente** - Sistema de busca com debounce e histórico de pesquisas
+- **🛒 Carrinho de Compras** - Adição, remoção e gerenciamento de produtos no carrinho
+- **💬 Integração WhatsApp** - Envio automático de pedidos via WhatsApp Business
+- **📱 Design Responsivo** - Interface otimizada para desktop, tablet e mobile
+- **🎬 Vídeo Introdutório** - Apresentação animada com skip automático
+- **🔄 Sincronização Automática** - Sync em tempo real com Tiny ERP via API
+- **⚡ Performance Otimizada** - Lazy loading, code splitting e cache inteligente
+
+### 🛠️ Funcionalidades Técnicas
+
+- **🏗️ Arquitetura Full-Stack** - Frontend React + Backend Node.js separados
+- **📊 Gerenciamento de Estado** - Zustand para UI e carrinho com persistência
+- **🔄 Cache Inteligente** - React Query para cache de API e sincronização
+- **📝 TypeScript Completo** - Tipagem forte em frontend e backend
+- **🛡️ Rate Limiting** - Proteção contra spam na API do Tiny ERP
+- **📋 Logs Estruturados** - Sistema completo de logging com níveis
+
+---
+
+## 🏗️ Arquitetura do Projeto
+
+```
+Catalog/
+├── 📁 frontend/              # Frontend React + TypeScript
+│   ├── src/
+│   │   ├── app/              # Componentes principais
+│   │   ├── core/             # Stores, hooks, utils
+│   │   ├── features/         # Funcionalidades específicas
+│   │   ├── shared/           # Componentes reutilizáveis
+│   │   └── types/            # Definições TypeScript
+│   ├── dist/                 # Build de produção
+│   └── package.json          # Dependências frontend
+├── 📁 backend/               # Backend Node.js + Express
+│   ├── src/
+│   │   ├── config/           # Configurações
+│   │   ├── middlewares/      # Middlewares Express
+│   │   ├── models/           # Modelos MongoDB
+│   │   ├── routes/           # Rotas da API
+│   │   ├── services/         # Serviços de negócio
+│   │   └── utils/            # Utilitários
+│   ├── server.js             # Servidor principal
+│   └── package.json          # Dependências backend
+├── 📁 netlify.toml           # Configuração deploy
+└── 📁 LICENSE                # Licença proprietária
+```
+
+---
+
+## 📄 Páginas e Seções
+
+### 🏠 Página Principal (Catálogo)
+
+- **Grid/Lista de Produtos** - Visualização alternável entre grid e lista
+- **Filtros Avançados** - Por categoria, preço, status e ordenação
+- **Paginação Inteligente** - Navegação otimizada para mobile e desktop
+- **Busca em Tempo Real** - Com sugestões e histórico
+- **Auto-reload** - Recarregamento automático quando API está inativa
+
+### 🛒 Página do Carrinho
+
+- **Gerenciamento de Itens** - Adicionar, remover e alterar quantidades
+- **Informações do Cliente** - Nome, telefone, endereço e observações
+- **Integração WhatsApp** - Envio automático do pedido formatado
+- **Cálculo de Totais** - Soma automática de produtos e quantidades
+
+### 🔍 Página de Busca
+
+- **Resultados Inteligentes** - Busca com debounce e cache
+- **Histórico de Pesquisas** - Últimas 10 buscas realizadas
+- **Filtros de Resultados** - Aplicação de filtros na busca
+- **Navegação por Produtos** - Acesso direto aos detalhes
+
+### 📱 Modal de Produto
+
+- **Detalhes Completos** - Informações, imagens e especificações
+- **Adição ao Carrinho** - Controle de quantidade e adição rápida
+- **Navegação por Imagens** - Galeria de fotos do produto
+- **Integração WhatsApp** - Compra direta via WhatsApp
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+### Frontend
+
+- **React 18.2.0** - Biblioteca principal para interface
+- **TypeScript 5.9.3** - Tipagem estática e desenvolvimento seguro
+- **Vite 4.4.5** - Build tool moderno e rápido
+- **Tailwind CSS 3.3.3** - Framework CSS utilitário
+- **React Router DOM 6.15.0** - Roteamento client-side
+- **Zustand 4.4.1** - Gerenciamento de estado leve
+- **React Query 5.80.0** - Cache e sincronização de dados
+- **Framer Motion 10.16.4** - Animações e transições
+- **Lucide React 0.279.0** - Ícones modernos e otimizados
+- **React Hot Toast 2.4.1** - Notificações elegantes
+- **Axios 1.5.0** - Cliente HTTP para APIs
+
+### Backend
+
+- **Node.js 18+** - Runtime JavaScript server-side
+- **Express 4.18.2** - Framework web minimalista
+- **MongoDB 7.5.0** - Banco de dados NoSQL
+- **Mongoose 7.5.0** - ODM para MongoDB
+- **Node-cron 3.0.2** - Agendamento de tarefas
+- **CORS 2.8.5** - Controle de acesso cross-origin
+- **Axios 1.5.0** - Cliente HTTP para APIs externas
+
+### Ferramentas de Desenvolvimento
+
+- **ESLint 8.50.0** - Linter para qualidade de código
+- **TypeScript Compiler** - Compilação e verificação de tipos
+- **PostCSS 8.4.29** - Processamento de CSS
+- **Autoprefixer 10.4.15** - Prefixos CSS automáticos
+- **Nodemon 3.0.1** - Hot reload para desenvolvimento
+
+### Deploy e CI/CD
+
+- **Netlify** - Deploy automático do frontend
+- **GitHub Actions** - CI/CD e workflows automatizados
+- **MongoDB Atlas** - Banco de dados em nuvem
+- **Netlify Functions** - Serverless functions (se necessário)
+
+### Integrações
+
+- **Tiny ERP API** - Sincronização de produtos
+- **WhatsApp Business API** - Envio de pedidos
+- **MongoDB Atlas** - Banco de dados em nuvem
+
+---
+
+## 🚀 Como Executar
+
+### Pré-requisitos
+
+- Node.js 18+ instalado
+- MongoDB (local ou Atlas)
+- Token da API do Tiny ERP
+- Conta Netlify (para deploy)
+
+### Instalação
+
+```bash
+# Clone o repositório
+git clone https://github.com/DionathaGoulart/tiny-products-catalog.git
+
+# Entre no diretório
+cd tiny-products-catalog
+
+# Instale as dependências do frontend
+cd frontend && npm install
+
+# Instale as dependências do backend
+cd ../backend && npm install
+```
+
+### Scripts Disponíveis
+
+```bash
+# Frontend - Desenvolvimento
+npm run dev          # Servidor de desenvolvimento (porta 5174)
+npm run build        # Build de produção
+npm run preview      # Preview do build
+
+# Backend - Desenvolvimento
+npm run dev          # Servidor com nodemon (porta 3000)
+npm start            # Servidor de produção
+npm run lint         # Verificação de código
+npm run lint:fix     # Correção automática de lint
+
+# Backend - Debug
+npm run debug        # Execução com logs detalhados
+```
+
+
+## 🔧 Configuração
+
+### Variáveis de Ambiente
+
+Crie um arquivo `.env.local` na raiz do projeto:
+
+```env
+# Backend
+MONGODB_URI=mongodb://localhost:27017/tiny-catalog
+TINY_TOKEN=seu_token_da_api_tiny
+TINY_RATE_LIMIT_REQUESTS=25
+TINY_RATE_LIMIT_WINDOW=60000
+
+# Frontend
+VITE_API_URL=http://localhost:3000/api
+VITE_WHATSAPP_NUMBER=5511999999999
+```
+
+### Personalização
+
+- **Cores**: Edite `frontend/src/shared/styles/globals.css`
+- **Configurações**: Configure em `frontend/src/core/constants/api.js`
+- **Ícones**: Modifique os arquivos em `frontend/src/assets/`
+- **Imagens**: Adicione seus arquivos em `frontend/src/assets/`
+- **Configuração**: Configure em `frontend/tailwind.config.cjs`
+
+---
+
+## 📄 Licença
+
+**⚠️ ATENÇÃO: Este projeto é de uso exclusivo e pessoal.**
+
+### Direitos Reservados
+
+Este software e sua documentação são propriedade exclusiva do autor e estão protegidos por direitos autorais. É **expressamente proibido**:
+
+- ❌ **Copiar** o código fonte
+- ❌ **Modificar** sem autorização
+- ❌ **Distribuir** o software
+- ❌ **Usar** para fins comerciais
+- ❌ **Criar trabalhos derivados**
+- ❌ **Fazer engenharia reversa**
+
+### Uso Permitido
+
+- ✅ **Visualizar** o código para fins educacionais
+- ✅ **Estudar** a implementação para aprendizado
+- ✅ **Inspirar-se** nas ideias e conceitos
+- ✅ **Fazer fork** apenas para estudo pessoal
+
+### Consequências
+
+A violação desta licença resultará em:
+
+- Ação legal imediata
+- Remoção do conteúdo infrator
+- Danos e prejuízos conforme a lei
+
+**© 2025 Dionatha Goulart. Todos os direitos reservados.**
+
+---
+
+## 📞 Contato
+
+**Desenvolvedor**: Dionatha Goulart  
+**Email**: dionatha.work@gmail.com  
+**Portfolio**: https://dionatha.com.br/  
+**GitHub**: https://github.com/DionathaGoulart  
+**Linkedin**: https://www.linkedin.com/in/dionathagoulart/
+
+---
+
+<div align="center">
+
+**Feito by Dionatha Goulart**
+
+</div>

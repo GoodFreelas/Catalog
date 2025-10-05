@@ -57,7 +57,6 @@ const CartDrawer = () => {
       toast.success("Redirecionando para WhatsApp!");
       closeCart();
     } catch (error) {
-      console.error("Erro ao enviar para WhatsApp:", error);
       toast.error("Erro ao abrir WhatsApp. Tente novamente.");
     }
   };
